@@ -3,9 +3,18 @@ import path from "node:path"
 import fs from "node:fs"
 import { v4 as uuidv4 } from "uuid"
 import screenshot from "screenshot-desktop"
+import FormData from "form-data"
+import axios from "axios"
 
 let mainWindow: BrowserWindow | null = null
 const screenshotDir = path.join(app.getPath("userData"), "screenshots")
+
+const PROCESSING_EVENTS = {
+  START: "processing-start",
+  SUCCESS: "processing-success",
+  ERROR: "processing-error",
+  NO_SCREENSHOTS: "processing-no-screenshots"
+} as const
 
 // Create the screenshot directory if it doesn't exist
 if (!fs.existsSync(screenshotDir)) {
@@ -14,7 +23,7 @@ if (!fs.existsSync(screenshotDir)) {
 
 // Screenshot queue logic
 let screenshotQueue: string[] = []
-const MAX_SCREENSHOTS = 10
+const MAX_SCREENSHOTS = 3
 
 // Function to create the main window
 function createWindow() {
@@ -80,6 +89,42 @@ app.whenReady().then(() => {
   createWindow()
 
   // Register IPC handlers
+  ipcMain.handle("process-screenshots", async (event, screenshots) => {
+    try {
+      const formData = new FormData()
+
+      screenshots.forEach((screenshot: any, index: number) => {
+        formData.append(`image_${index}`, screenshot.path)
+      })
+
+      formData.append(
+        "text_prompt",
+        "Analyze the coding problem in the images and provide three possible solutions with different approaches and trade-offs. For each solution, include: \n" +
+          "1. Initial thoughts: 2-3 first impressions and key observations about the problem\n" +
+          "2. Thought steps: A natural progression of how you would think through implementing this solution, as if explaining to an interviewer\n" +
+          "3. Detailed explanation of the approach and its trade-offs\n" +
+          "4. Complete, well-commented code implementation\n" +
+          "Structure the solutions from simplest/most intuitive to most optimized. Focus on clear explanation and clean code."
+      )
+
+      const response = await axios.post(
+        "http://0.0.0.0:8000/process_images",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          },
+          timeout: 30000
+        }
+      )
+
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error("Processing error:", error)
+      return { success: false, error: error.message }
+    }
+  })
+
   ipcMain.handle("delete-screenshot", async (event, path) => {
     try {
       await fs.promises.unlink(path) // Delete the file at the given path
@@ -132,6 +177,59 @@ app.whenReady().then(() => {
         })
       } catch (error) {
         console.error("Error capturing screenshot:", error)
+      }
+    }
+  })
+
+  globalShortcut.register("CommandOrControl+Shift+J", async () => {
+    if (mainWindow) {
+      // Notify renderer that processing is starting
+      mainWindow.webContents.send(PROCESSING_EVENTS.START)
+
+      if (screenshotQueue.length === 0) {
+        mainWindow.webContents.send(PROCESSING_EVENTS.NO_SCREENSHOTS)
+        return
+      }
+
+      try {
+        const screenshots = await Promise.all(
+          screenshotQueue.map(async (path) => ({
+            path,
+            preview: await getImagePreview(path)
+          }))
+        )
+
+        const formData = new FormData()
+
+        screenshots.forEach((screenshot, index) => {
+          formData.append(`image_${index}`, screenshot.path)
+        })
+
+        formData.append(
+          "text_prompt",
+          "Analyze the coding problem in the images and provide three possible solutions with different approaches and trade-offs. For each solution, include: \n" +
+            "1. Initial thoughts: 2-3 first impressions and key observations about the problem\n" +
+            "2. Thought steps: A natural progression of how you would think through implementing this solution, as if explaining to an interviewer\n" +
+            "3. Detailed explanation of the approach and its trade-offs\n" +
+            "4. Complete, well-commented code implementation\n" +
+            "Structure the solutions from simplest/most intuitive to most optimized. Focus on clear explanation and clean code."
+        )
+
+        const response = await axios.post(
+          "http://0.0.0.0:8000/process_images",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data"
+            },
+            timeout: 30000
+          }
+        )
+
+        mainWindow.webContents.send(PROCESSING_EVENTS.SUCCESS)
+      } catch (error) {
+        console.error("Processing error:", error)
+        mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, error.message)
       }
     }
   })

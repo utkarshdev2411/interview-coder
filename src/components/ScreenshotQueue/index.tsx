@@ -22,7 +22,7 @@ const ScreenshotQueue: React.FC<ScreenshotQueueProps> = ({
     )
   }
 
-  const displayScreenshots = screenshots.slice(0, 10)
+  const displayScreenshots = screenshots.slice(0, 3)
 
   return (
     <div className="grid grid-cols-4 gap-4 my-12">
