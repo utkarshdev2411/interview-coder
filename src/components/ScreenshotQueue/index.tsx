@@ -1,4 +1,5 @@
 import React from "react"
+import ScreenshotItem from "./ScreenshotItem"
 
 interface Screenshot {
   path: string
@@ -7,9 +8,12 @@ interface Screenshot {
 
 interface ScreenshotQueueProps {
   screenshots: Screenshot[]
+  onDeleteScreenshot: (index: number) => void
 }
-
-const ScreenshotQueue: React.FC<ScreenshotQueueProps> = ({ screenshots }) => {
+const ScreenshotQueue: React.FC<ScreenshotQueueProps> = ({
+  screenshots,
+  onDeleteScreenshot
+}) => {
   if (screenshots.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
@@ -18,22 +22,17 @@ const ScreenshotQueue: React.FC<ScreenshotQueueProps> = ({ screenshots }) => {
     )
   }
 
-  // Take up to the first 10 screenshots
   const displayScreenshots = screenshots.slice(0, 10)
 
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="grid grid-cols-4 gap-4 my-12">
       {displayScreenshots.map((screenshot, index) => (
-        <div
-          key={index}
-          className="relative bg-gray-100 rounded-lg overflow-hidden"
-        >
-          <img
-            src={screenshot.preview}
-            alt={`Screenshot ${index + 1}`}
-            className="w-full h-48 object-cover"
-          />
-        </div>
+        <ScreenshotItem
+          key={screenshot.path}
+          screenshot={screenshot}
+          index={index}
+          onDelete={onDeleteScreenshot}
+        />
       ))}
     </div>
   )

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, globalShortcut, screen } from "electron"
+import { app, BrowserWindow, ipcMain, globalShortcut } from "electron"
 import path from "node:path"
 import fs from "node:fs"
 import { v4 as uuidv4 } from "uuid"
@@ -7,46 +7,48 @@ import screenshot from "screenshot-desktop"
 let mainWindow: BrowserWindow | null = null
 const screenshotDir = path.join(app.getPath("userData"), "screenshots")
 
-//we're going to arbitrarily define a screenshot directory as
-//./userData/screenshots
-// make it if it doesn't exist
+// Create the screenshot directory if it doesn't exist
 if (!fs.existsSync(screenshotDir)) {
   fs.mkdirSync(screenshotDir)
 }
 
-//SCREENSHOT QUEUE LOGIC
-let screenshotQueue: string[] = [] //default this to an empty array
+// Screenshot queue logic
+let screenshotQueue: string[] = []
 const MAX_SCREENSHOTS = 10
 
-//this is the main window, which is like initial browser
+// Function to create the main window
 function createWindow() {
+  // Prevent creating multiple windows
+  if (mainWindow !== null) return
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, "preload.js") //we use preload.js instead of preload.ts because this works in a built, post compiled environment
+      preload: path.join(__dirname, "preload.js") // Use preload.js for context isolation
     }
   })
 
-  //dev mode
+  // Load your application URL
   mainWindow.loadURL("http://localhost:5173")
-  mainWindow.webContents.openDevTools() //auto starts it up with the inspect element open
+  mainWindow.webContents.openDevTools() // Open DevTools in development mode
 
-  //PRODUCTION METHOD OF LOADING
-  //mainWindow.loadFile(path.join(__dirname, "../dist/index.html"))
-
-  return mainWindow
+  // Reset mainWindow when it's closed
+  mainWindow.on("closed", () => {
+    mainWindow = null
+  })
 }
 
+// Function to capture a screenshot
 async function captureScreenshot(): Promise<string> {
   if (!mainWindow) throw new Error("No main window available")
 
   const screenshotPath = path.join(screenshotDir, `${uuidv4()}.png`)
   await screenshot({ filename: screenshotPath })
 
-  // add to queue and maintain max size of queue
+  // Add to queue and maintain max size
   screenshotQueue.push(screenshotPath)
   if (screenshotQueue.length > MAX_SCREENSHOTS) {
     const removedPath = screenshotQueue.shift()
@@ -59,11 +61,10 @@ async function captureScreenshot(): Promise<string> {
     }
   }
 
-  //TODO: consider resizing using the sharp module
   return screenshotPath
 }
 
-// helper function to preview images
+// Helper function to get image previews
 async function getImagePreview(filepath: string): Promise<string> {
   try {
     const data = await fs.promises.readFile(filepath)
@@ -74,12 +75,11 @@ async function getImagePreview(filepath: string): Promise<string> {
   }
 }
 
+// When the app is ready, create the window and set up IPC and shortcuts
 app.whenReady().then(() => {
-  //this will fulfill when the app is ready.
-  mainWindow = createWindow()
+  createWindow()
 
-  //THIS IS HOW WE DEFINE OUR NODE.JS FUNCTIONS.
-  //in our main.ts, we have access to system level stuff
+  // Register IPC handlers
   ipcMain.handle("take-screenshot", async () => {
     try {
       const screenshotPath = await captureScreenshot()
@@ -90,6 +90,7 @@ app.whenReady().then(() => {
       throw error
     }
   })
+
   ipcMain.handle("get-screenshots", async () => {
     try {
       const previews = await Promise.all(
@@ -105,6 +106,7 @@ app.whenReady().then(() => {
     }
   })
 
+  // Register global shortcut
   globalShortcut.register("CommandOrControl+Shift+H", async () => {
     if (mainWindow) {
       try {
@@ -119,23 +121,23 @@ app.whenReady().then(() => {
       }
     }
   })
+
+  // 'activate' event listener inside 'whenReady' to prevent multiple windows
+  app.on("activate", () => {
+    if (mainWindow === null) {
+      createWindow()
+    }
+  })
 })
 
+// Quit when all windows are closed, except on macOS
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit()
   }
 })
 
-app.on("activate", () => {
-  //emitted when the application is activated
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
-  }
-})
-
+// Unregister global shortcuts when the app is about to quit
 app.on("will-quit", () => {
-  //when all windows have been closed and the application will quit.
-  //event.preventDefault() will prevent termination of teh application.
   globalShortcut.unregisterAll()
 })
