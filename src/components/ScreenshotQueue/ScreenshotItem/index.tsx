@@ -23,6 +23,7 @@ const ScreenshotItem: React.FC<ScreenshotItemProps> = ({
   const [isDeleting, setIsDeleting] = useState<boolean>(false)
   const handleDelete = async () => {
     setIsDeleting(true)
+    console.log("clicked handle delete")
     await onDelete(index)
     setIsDeleting(false)
   }

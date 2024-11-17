@@ -80,6 +80,19 @@ app.whenReady().then(() => {
   createWindow()
 
   // Register IPC handlers
+  ipcMain.handle("delete-screenshot", async (event, path) => {
+    try {
+      await fs.promises.unlink(path) // Delete the file at the given path
+      //delete it from the screenshottsqueue
+      screenshotQueue = screenshotQueue.filter((filePath) => filePath !== path)
+
+      return { success: true }
+    } catch (error) {
+      console.error("Error deleting file:", error)
+      return { success: false, error: error.message }
+    }
+  })
+
   ipcMain.handle("take-screenshot", async () => {
     try {
       const screenshotPath = await captureScreenshot()
@@ -109,6 +122,7 @@ app.whenReady().then(() => {
   // Register global shortcut
   globalShortcut.register("CommandOrControl+Shift+H", async () => {
     if (mainWindow) {
+      console.log("Taking screenshot...")
       try {
         const screenshotPath = await captureScreenshot()
         const preview = await getImagePreview(screenshotPath)

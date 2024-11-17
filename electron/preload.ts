@@ -10,6 +10,8 @@ interface ElectronAPI {
 contextBridge.exposeInMainWorld("electronAPI", {
   takeScreenshot: () => ipcRenderer.invoke("take-screenshot"), //turns the node function into a usable api exported to the web environment
   getScreenshots: () => ipcRenderer.invoke("get-screenshots"),
+  deleteScreenshot: (path: string) =>
+    ipcRenderer.invoke("delete-screenshot", path), // New function
   onScreenshotTaken: (
     callback: (data: { path: string; preview: string }) => void
   ) => {
