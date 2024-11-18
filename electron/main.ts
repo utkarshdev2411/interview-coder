@@ -55,14 +55,17 @@ function createWindow() {
     show: true,
     // Add these settings to make the window float
     alwaysOnTop: true,
-    frame: true,
+    frame: false,
+    transparent: true,
     // These settings help with macOS behavior
-    vibrancy: "window" as const,
+    vibrancy: "under-window" as const,
     visualEffectState: "active" as const,
+
     // Make it work with macOS fullscreen apps
     fullscreenable: false,
     // Optional: remove the window shadow
-    hasShadow: false
+    hasShadow: false,
+    backgroundColor: "#00000000"
   }
 
   mainWindow = new BrowserWindow(windowSettings)

@@ -141,7 +141,7 @@ const Queue: React.FC = () => {
   }, [])
 
   return (
-    <div className="bg-white shadow-sm">
+    <div className="bg-transparent">
       <div className="px-4 py-3">
         <Toast
           open={toastOpen}
@@ -158,19 +158,18 @@ const Queue: React.FC = () => {
             screenshots={screenshots}
             onDeleteScreenshot={handleDeleteScreenshot}
           />
-
-          <div className="border-t pt-3">
-            <p className="text-sm text-gray-600 space-y-1">
-              <span className="block">
-                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">
+          <div className="pt-2">
+            <p className="text-sm text-white backdrop-blur-md bg-black/30 rounded-lg p-2 flex flex-col gap-2">
+              <span className="flex items-center">
+                <kbd className="bg-white/20 backdrop-blur-sm rounded-md text-xs text-white border border-white/20 px-2 py-1 mr-2">
                   ⌘ + ⇧ + H
-                </kbd>{" "}
+                </kbd>
                 Take screenshot (keeps latest 3)
               </span>
-              <span className="block">
-                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">
+              <span className="flex items-center">
+                <kbd className="bg-white/20 backdrop-blur-sm rounded-md text-xs text-white border border-white/20 px-2 py-1 mr-2">
                   ⌘ + ⇧ + J
-                </kbd>{" "}
+                </kbd>
                 Process screenshots
               </span>
             </p>

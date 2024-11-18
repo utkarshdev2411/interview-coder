@@ -26,10 +26,12 @@ declare global {
 }
 const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <Queue />
-      <ToastViewport />
-    </ToastProvider>
+    <div className="bg-transparent">
+      <ToastProvider>
+        <Queue />
+        <ToastViewport />
+      </ToastProvider>
+    </div>
   )
 }
 
