@@ -16,8 +16,12 @@ const ScreenshotQueue: React.FC<ScreenshotQueueProps> = ({
 }) => {
   if (screenshots.length === 0) {
     return (
-      <div className="flex items-center justify-center bg-gray-100 rounded-lg">
-        <p className="text-gray-500">No screenshots taken yet</p>
+      <div className="pt-2">
+        <p className="w-fit text-sm text-white backdrop-blur-md bg-black/30 rounded-lg p-2 flex flex-col gap-4">
+          <div className="flex items-center">
+            <span className="ml-2 text-md">No screenshots taken yet</span>
+          </div>
+        </p>
       </div>
     )
   }

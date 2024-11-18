@@ -6,7 +6,12 @@ import {
   ToastDescription,
   ToastVariant
 } from "../components/ui/toast"
-import { cn } from "../lib/utils"
+import {
+  handleTakeScreenshot,
+  handleGetSolutions,
+  handleToggleVisibility,
+  handleDeleteScreenshot
+} from "../lib/electronHandlers"
 
 interface Screenshot {
   path: string
@@ -160,7 +165,7 @@ const Queue: React.FC = () => {
           />
 
           <div className="pt-2">
-            <p className="text-sm text-white backdrop-blur-md bg-black/30 rounded-lg p-2 flex flex-col gap-4">
+            <p className="w-fit text-sm text-white backdrop-blur-md bg-black/30 rounded-lg p-2 flex flex-col gap-4">
               {/* Improved visual hierarchy */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center">

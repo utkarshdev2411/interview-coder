@@ -4,7 +4,6 @@ import fs from "node:fs"
 import { v4 as uuidv4 } from "uuid"
 import screenshot from "screenshot-desktop"
 import FormData from "form-data"
-import { Screen } from "electron"
 import axios from "axios"
 
 let mainWindow: BrowserWindow | null = null
@@ -29,8 +28,6 @@ if (!fs.existsSync(screenshotDir)) {
 // Screenshot queue logic
 let screenshotQueue: string[] = []
 const MAX_SCREENSHOTS = 3
-
-// All functionality for creating / toggling the
 
 ipcMain.handle("update-content-height", async (event, height: number) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -58,14 +55,13 @@ function createWindow() {
     frame: false,
     transparent: true,
     // These settings help with macOS behavior
-    vibrancy: "under-window" as const,
     visualEffectState: "active" as const,
-
     // Make it work with macOS fullscreen apps
     fullscreenable: false,
     // Optional: remove the window shadow
     hasShadow: false,
-    backgroundColor: "#00000000"
+    backgroundColor: "#00000000",
+    focusable: false
   }
 
   mainWindow = new BrowserWindow(windowSettings)
@@ -76,7 +72,7 @@ function createWindow() {
       visibleOnFullScreen: true
     })
     // This is crucial for floating above fullscreen apps
-    mainWindow.setAlwaysOnTop(true, "screen-saver")
+    mainWindow.setAlwaysOnTop(true, "floating")
   }
 
   mainWindow.loadURL("http://localhost:5173")
@@ -105,13 +101,6 @@ function createWindow() {
     isWindowVisible = true
     windowPosition = null
     windowSize = null
-  })
-
-  // Prevent the window from losing focus when clicking outside
-  mainWindow.on("blur", () => {
-    if (isWindowVisible && !mainWindow?.isDestroyed()) {
-      mainWindow?.focus()
-    }
   })
 }
 
@@ -144,16 +133,62 @@ function toggleMainWindow() {
       })
     }
     mainWindow.show()
-    mainWindow.focus() // Ensure window is focused when shown
   }
 
   isWindowVisible = !isWindowVisible
 }
 
+function hideMainWindow() {
+  if (!mainWindow) {
+    createWindow()
+    return
+  }
+
+  if (mainWindow.isDestroyed()) {
+    createWindow()
+    return
+  }
+
+  if (isWindowVisible) {
+    // Store current position and size before hiding
+    const bounds = mainWindow.getBounds()
+    windowPosition = { x: bounds.x, y: bounds.y }
+    windowSize = { width: bounds.width, height: bounds.height }
+    mainWindow.hide()
+  }
+  isWindowVisible = false
+}
+
+function showMainWindow() {
+  if (!mainWindow) {
+    createWindow()
+    return
+  }
+
+  if (mainWindow.isDestroyed()) {
+    createWindow()
+    return
+  }
+
+  // Restore window at the last position and size
+  if (windowPosition && windowSize) {
+    mainWindow.setBounds({
+      x: windowPosition.x,
+      y: windowPosition.y,
+      width: windowSize.width,
+      height: windowSize.height
+    })
+  }
+  mainWindow.show()
+}
+
+isWindowVisible = false
+
 // LOGIC FOR CMD+H
 async function captureScreenshot(): Promise<string> {
   if (!mainWindow) throw new Error("No main window available")
 
+  hideMainWindow()
   const screenshotPath = path.join(screenshotDir, `${uuidv4()}.png`)
   await screenshot({ filename: screenshotPath })
 
@@ -169,7 +204,7 @@ async function captureScreenshot(): Promise<string> {
       }
     }
   }
-
+  showMainWindow()
   return screenshotPath
 }
 
@@ -188,7 +223,7 @@ async function getImagePreview(filepath: string): Promise<string> {
 app.whenReady().then(() => {
   createWindow()
 
-  // Register IPC handlers
+  // OS - PERMISSION FUNCTION HANDLERS
   ipcMain.handle("process-screenshots", async (event, screenshots) => {
     try {
       const formData = new FormData()
@@ -268,7 +303,7 @@ app.whenReady().then(() => {
     toggleMainWindow()
   })
 
-  // Register global shortcut
+  // GLOBAL SHORTCUTS
   globalShortcut.register("CommandOrControl+H", async () => {
     if (mainWindow) {
       console.log("Taking screenshot...")
@@ -345,8 +380,9 @@ app.whenReady().then(() => {
       // Force the window to the front on macOS
       if (process.platform === "darwin") {
         app.dock.show() // Temporarily show dock icon if hidden
-        app.focus({ steal: true }) // Force focus to the app
-        mainWindow.setAlwaysOnTop(true, "screen-saver")
+        // app.focus({ steal: true }) // Force focus to the app
+        mainWindow.setAlwaysOnTop(true, "normal")
+        // "normal" | "floating" | "torn-off-menu" | "modal-panel" | "main-menu" | "status" | "pop-up-menu" | "screen-saver" | "dock"
         // Reset alwaysOnTop after a brief delay to allow other windows to go above if needed
         setTimeout(() => {
           if (mainWindow && !mainWindow.isDestroyed()) {

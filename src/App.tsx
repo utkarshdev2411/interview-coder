@@ -27,7 +27,7 @@ declare global {
 }
 const App: React.FC = () => {
   return (
-    <div className="bg-transparent">
+    <div className="bg-transparent w-fit">
       <ToastProvider>
         <Queue />
         <ToastViewport />
