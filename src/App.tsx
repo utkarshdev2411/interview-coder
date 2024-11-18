@@ -20,6 +20,7 @@ declare global {
       onProcessingSuccess: (callback: () => void) => () => void
       onProcessingError: (callback: (error: string) => void) => () => void
       onProcessingNoScreenshots: (callback: () => void) => () => void
+      updateContentHeight: (height: number) => Promise<void>
     }
   }
 }

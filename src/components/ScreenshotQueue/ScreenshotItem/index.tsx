@@ -29,7 +29,7 @@ const ScreenshotItem: React.FC<ScreenshotItemProps> = ({
   }
   if (isDeleting) {
     return (
-      <div className="w-full h-full relative">
+      <div className="w-[120%] h-full relative">
         <img
           src={screenshot.preview}
           alt="Screenshot"

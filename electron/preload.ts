@@ -15,6 +15,8 @@ const PROCESSING_EVENTS = {
 
 //our preload.ts allows us to expose certain functions used in the main.ts to the web environment, which we can access in our app.tsx
 contextBridge.exposeInMainWorld("electronAPI", {
+  updateContentHeight: (height: number) =>
+    ipcRenderer.invoke("update-content-height", height),
   takeScreenshot: () => ipcRenderer.invoke("take-screenshot"), //turns the node function into a usable api exported to the web environment
   getScreenshots: () => ipcRenderer.invoke("get-screenshots"),
   processScreenshots: (screenshots: Array<{ path: string; preview: string }>) =>

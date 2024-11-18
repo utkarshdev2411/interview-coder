@@ -4,9 +4,14 @@ import fs from "node:fs"
 import { v4 as uuidv4 } from "uuid"
 import screenshot from "screenshot-desktop"
 import FormData from "form-data"
+import { Screen } from "electron"
 import axios from "axios"
 
 let mainWindow: BrowserWindow | null = null
+let isWindowVisible = true
+let windowPosition: { x: number; y: number } | null = null
+let windowSize: { width: number; height: number } | null = null
+
 const screenshotDir = path.join(app.getPath("userData"), "screenshots")
 
 const PROCESSING_EVENTS = {
@@ -25,32 +30,124 @@ if (!fs.existsSync(screenshotDir)) {
 let screenshotQueue: string[] = []
 const MAX_SCREENSHOTS = 3
 
-// Function to create the main window
+// All functionality for creating / toggling the
+
+ipcMain.handle("update-content-height", async (event, height: number) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    const [width] = mainWindow.getSize()
+    mainWindow.setSize(width, Math.ceil(height))
+  }
+})
+
 function createWindow() {
-  // Prevent creating multiple windows
   if (mainWindow !== null) return
 
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+  const windowSettings = {
+    width: 1000,
+    height: 400,
+    x: 0,
+    y: 0,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, "preload.js") // Use preload.js for context isolation
+      preload: path.join(__dirname, "preload.js")
+    },
+    show: true,
+    // Add these settings to make the window float
+    alwaysOnTop: true,
+    frame: true,
+    // These settings help with macOS behavior
+    vibrancy: "window" as const,
+    visualEffectState: "active" as const,
+    // Make it work with macOS fullscreen apps
+    fullscreenable: false,
+    // Optional: remove the window shadow
+    hasShadow: false
+  }
+
+  mainWindow = new BrowserWindow(windowSettings)
+
+  // Set the window level to float above everything (including fullscreen apps)
+  if (process.platform === "darwin") {
+    mainWindow.setVisibleOnAllWorkspaces(true, {
+      visibleOnFullScreen: true
+    })
+    // This is crucial for floating above fullscreen apps
+    mainWindow.setAlwaysOnTop(true, "screen-saver")
+  }
+
+  mainWindow.loadURL("http://localhost:5173")
+
+  // Store initial position and size
+  const bounds = mainWindow.getBounds()
+  windowPosition = { x: bounds.x, y: bounds.y }
+  windowSize = { width: bounds.width, height: bounds.height }
+
+  mainWindow.on("move", () => {
+    if (mainWindow) {
+      const bounds = mainWindow.getBounds()
+      windowPosition = { x: bounds.x, y: bounds.y }
     }
   })
 
-  // Load your application URL
-  mainWindow.loadURL("http://localhost:5173")
-  mainWindow.webContents.openDevTools() // Open DevTools in development mode
+  mainWindow.on("resize", () => {
+    if (mainWindow) {
+      const bounds = mainWindow.getBounds()
+      windowSize = { width: bounds.width, height: bounds.height }
+    }
+  })
 
-  // Reset mainWindow when it's closed
   mainWindow.on("closed", () => {
     mainWindow = null
+    isWindowVisible = true
+    windowPosition = null
+    windowSize = null
+  })
+
+  // Prevent the window from losing focus when clicking outside
+  mainWindow.on("blur", () => {
+    if (isWindowVisible && !mainWindow?.isDestroyed()) {
+      mainWindow?.focus()
+    }
   })
 }
 
-// Function to capture a screenshot
+//LOGIC FOR CMD+SHIFT+B
+function toggleMainWindow() {
+  if (!mainWindow) {
+    createWindow()
+    return
+  }
+
+  if (mainWindow.isDestroyed()) {
+    createWindow()
+    return
+  }
+
+  if (isWindowVisible) {
+    // Store current position and size before hiding
+    const bounds = mainWindow.getBounds()
+    windowPosition = { x: bounds.x, y: bounds.y }
+    windowSize = { width: bounds.width, height: bounds.height }
+    mainWindow.hide()
+  } else {
+    // Restore window at the last position and size
+    if (windowPosition && windowSize) {
+      mainWindow.setBounds({
+        x: windowPosition.x,
+        y: windowPosition.y,
+        width: windowSize.width,
+        height: windowSize.height
+      })
+    }
+    mainWindow.show()
+    mainWindow.focus() // Ensure window is focused when shown
+  }
+
+  isWindowVisible = !isWindowVisible
+}
+
+// LOGIC FOR CMD+SHIFT+H
 async function captureScreenshot(): Promise<string> {
   if (!mainWindow) throw new Error("No main window available")
 
@@ -234,16 +331,41 @@ app.whenReady().then(() => {
     }
   })
 
+  globalShortcut.register("CommandOrControl+Shift+B", () => {
+    toggleMainWindow()
+    // If window exists and we're showing it, bring it to front
+    if (mainWindow && !isWindowVisible) {
+      // Force the window to the front on macOS
+      if (process.platform === "darwin") {
+        app.dock.show() // Temporarily show dock icon if hidden
+        app.focus({ steal: true }) // Force focus to the app
+        mainWindow.setAlwaysOnTop(true, "screen-saver")
+        // Reset alwaysOnTop after a brief delay to allow other windows to go above if needed
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setAlwaysOnTop(true, "floating")
+          }
+        }, 100)
+      }
+    }
+  })
+
   // 'activate' event listener inside 'whenReady' to prevent multiple windows
   app.on("activate", () => {
     if (mainWindow === null) {
       createWindow()
+    } else if (!isWindowVisible) {
+      toggleMainWindow()
     }
   })
 })
 
 // Quit when all windows are closed, except on macOS
 app.on("window-all-closed", () => {
+  isWindowVisible = true
+  windowPosition = null
+  windowSize = null
+
   if (process.platform !== "darwin") {
     app.quit()
   }
@@ -253,3 +375,6 @@ app.on("window-all-closed", () => {
 app.on("will-quit", () => {
   globalShortcut.unregisterAll()
 })
+
+app.dock?.hide() // Hide dock icon (optional)
+app.commandLine.appendSwitch("disable-background-timer-throttling")

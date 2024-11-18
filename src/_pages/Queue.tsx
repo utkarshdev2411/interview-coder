@@ -6,7 +6,6 @@ import {
   ToastDescription,
   ToastVariant
 } from "../components/ui/toast"
-import axios from "axios"
 import { cn } from "../lib/utils"
 
 interface Screenshot {
@@ -64,111 +63,86 @@ const Queue: React.FC = () => {
     }
   }
 
-  const processScreenshots = async () => {
-    if (screenshots.length === 0) {
-      showToast(
-        "No Screenshots",
-        "There are no screenshots to process.",
-        "neutral"
-      )
-      return
-    }
-
-    setIsProcessing(true)
-
-    try {
-      const response = await window.electronAPI.processScreenshots(screenshots)
-
-      if (response.success) {
-        showToast(
-          "Processing Complete",
-          "Your screenshots were processed successfully.",
-          "success"
-        )
-      } else {
-        throw new Error(response.error)
-      }
-    } catch (error) {
-      showToast(
-        "Processing Failed",
-        "There was an error processing your screenshots.",
-        "error"
-      )
-      console.error("Processing error:", error)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
   useEffect(() => {
+    // Height update logic
+    const updateHeight = () => {
+      const contentHeight = document.body.scrollHeight
+      window.electronAPI.updateContentHeight(contentHeight)
+    }
+
+    // Initialize resize observer
+    const resizeObserver = new ResizeObserver(updateHeight)
+    resizeObserver.observe(document.body)
+    updateHeight() // Initial height update
+
+    // Screenshot loading
     const loadScreenshots = async () => {
       try {
         const existing = await window.electronAPI.getScreenshots()
         setScreenshots(existing)
+        // Update height after screenshots load
+        setTimeout(updateHeight, 0)
       } catch (error) {
         console.error("Error loading screenshots:", error)
         showToast("Error", "Failed to load existing screenshots", "error")
       }
     }
 
+    // Event handlers
+    const handleScreenshotTaken = (data: { path: string; preview: string }) => {
+      setScreenshots((prev) => [...prev, data].slice(-3))
+      // Update height after new screenshot
+      setTimeout(updateHeight, 0)
+    }
+
+    const handleProcessingSuccess = () => {
+      setIsProcessing(false)
+      showToast(
+        "Processing Complete",
+        "Your screenshots were processed successfully.",
+        "success"
+      )
+    }
+
+    const handleProcessingError = (error: string) => {
+      setIsProcessing(false)
+      showToast(
+        "Processing Failed",
+        "There was an error processing your screenshots.",
+        "error"
+      )
+      console.error("Processing error:", error)
+    }
+
+    const handleNoScreenshots = () => {
+      setIsProcessing(false)
+      showToast(
+        "No Screenshots",
+        "There are no screenshots to process.",
+        "neutral"
+      )
+    }
+
+    // Initialize
     loadScreenshots()
 
-    const cleanup = window.electronAPI.onScreenshotTaken((data) => {
-      setScreenshots((prev) => [...prev, data].slice(-3))
-    })
-
-    const processingStartCleanup = window.electronAPI.onProcessingStart(() => {
-      setIsProcessing(true)
-    })
-
-    const processingSuccessCleanup = window.electronAPI.onProcessingSuccess(
-      () => {
-        setIsProcessing(false)
-        showToast(
-          "Processing Complete",
-          "Your screenshots were processed successfully.",
-          "success"
-        )
-      }
-    )
-
-    const processingErrorCleanup = window.electronAPI.onProcessingError(
-      (error) => {
-        setIsProcessing(false)
-        showToast(
-          "Processing Failed",
-          "There was an error processing your screenshots.",
-          "error"
-        )
-        console.error("Processing error:", error)
-      }
-    )
-
-    const noScreenshotsCleanup = window.electronAPI.onProcessingNoScreenshots(
-      () => {
-        showToast(
-          "No Screenshots",
-          "There are no screenshots to process.",
-          "neutral"
-        )
-      }
-    )
+    // Set up event listeners
+    const cleanupFunctions = [
+      window.electronAPI.onScreenshotTaken(handleScreenshotTaken),
+      window.electronAPI.onProcessingSuccess(handleProcessingSuccess),
+      window.electronAPI.onProcessingError(handleProcessingError),
+      window.electronAPI.onProcessingNoScreenshots(handleNoScreenshots)
+    ]
 
     return () => {
-      window.removeEventListener("keydown", () => {})
-      processingStartCleanup()
-      processingSuccessCleanup()
-      processingErrorCleanup()
-      noScreenshotsCleanup()
-      cleanup()
+      resizeObserver.disconnect()
+      cleanupFunctions.forEach((cleanup) => cleanup())
     }
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Screenshot Queue</h1>
-
+    <div className="bg-white shadow-sm">
+      <div className="px-4 py-3">
         <Toast
           open={toastOpen}
           onOpenChange={setToastOpen}
@@ -178,29 +152,30 @@ const Queue: React.FC = () => {
           <ToastTitle>{toastMessage.title}</ToastTitle>
           <ToastDescription>{toastMessage.description}</ToastDescription>
         </Toast>
-        <ScreenshotQueue
-          screenshots={screenshots}
-          onDeleteScreenshot={handleDeleteScreenshot}
-        />
 
-        <button
-          onClick={processScreenshots}
-          disabled={isProcessing || screenshots.length === 0}
-          className={cn(
-            "mt-4 px-4 py-2 rounded-lg shadow transition",
-            isProcessing || screenshots.length === 0
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-green-500 hover:bg-green-600 text-white"
-          )}
-        >
-          {isProcessing ? "Processing..." : "Process Screenshots"}
-        </button>
+        <div className="space-y-3">
+          <ScreenshotQueue
+            screenshots={screenshots}
+            onDeleteScreenshot={handleDeleteScreenshot}
+          />
 
-        <p className="mt-4 text-sm text-gray-500">
-          Press Cmd+Shift+H to take a screenshot. Latest 3 screenshots will be
-          kept. <br />
-          Press Cmd+Shift+J to process the screenshots.
-        </p>
+          <div className="border-t pt-3">
+            <p className="text-sm text-gray-600 space-y-1">
+              <span className="block">
+                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">
+                  ⌘ + ⇧ + H
+                </kbd>{" "}
+                Take screenshot (keeps latest 3)
+              </span>
+              <span className="block">
+                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">
+                  ⌘ + ⇧ + J
+                </kbd>{" "}
+                Process screenshots
+              </span>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
