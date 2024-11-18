@@ -1,6 +1,9 @@
 import { ToastProvider } from "./components/ui/toast"
 import Queue from "./_pages/Queue"
 import { ToastViewport } from "@radix-ui/react-toast"
+import { useState } from "react"
+import Solutions from "./_pages/Solutions"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 declare global {
   interface Window {
@@ -26,12 +29,17 @@ declare global {
   }
 }
 const App: React.FC = () => {
+  const [view, setView] = useState<"queue" | "solutions">("queue")
+  const queryClient = new QueryClient()
+
   return (
     <div className="bg-transparent w-fit">
-      <ToastProvider>
-        <Queue />
-        <ToastViewport />
-      </ToastProvider>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          {view === "queue" ? <Queue setView={setView} /> : <Solutions />}
+          <ToastViewport />
+        </ToastProvider>
+      </QueryClientProvider>
     </div>
   )
 }

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react"
+import React, { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import ScreenshotQueue from "../components/ScreenshotQueue"
 import {
   Toast,
@@ -6,17 +7,6 @@ import {
   ToastDescription,
   ToastVariant
 } from "../components/ui/toast"
-import {
-  handleTakeScreenshot,
-  handleGetSolutions,
-  handleToggleVisibility,
-  handleDeleteScreenshot
-} from "../lib/electronHandlers"
-
-interface Screenshot {
-  path: string
-  preview: string
-}
 
 interface ToastMessage {
   title: string
@@ -24,14 +14,30 @@ interface ToastMessage {
   variant: ToastVariant
 }
 
-const Queue: React.FC = () => {
-  const [screenshots, setScreenshots] = useState<Screenshot[]>([])
-  const [isProcessing, setIsProcessing] = useState(false)
+interface QueueProps {
+  setView: React.Dispatch<React.SetStateAction<"queue" | "solutions">>
+}
+
+const Queue: React.FC<QueueProps> = ({ setView }) => {
   const [toastOpen, setToastOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<ToastMessage>({
     title: "",
     description: "",
     variant: "neutral"
+  })
+
+  const { data: screenshots = [], refetch } = useQuery({
+    queryKey: ["screenshots"],
+    queryFn: async () => {
+      try {
+        const existing = await window.electronAPI.getScreenshots()
+        return existing
+      } catch (error) {
+        console.error("Error loading screenshots:", error)
+        showToast("Error", "Failed to load existing screenshots", "error")
+        return []
+      }
+    }
   })
 
   const showToast = (
@@ -52,7 +58,7 @@ const Queue: React.FC = () => {
       )
 
       if (response.success) {
-        setScreenshots((prev) => prev.filter((_, i) => i !== index))
+        refetch() // Refetch screenshots instead of managing state directly
         showToast("Success", "Screenshot deleted successfully", "success")
       } else {
         console.error("Failed to delete screenshot:", response.error)
@@ -78,72 +84,41 @@ const Queue: React.FC = () => {
     // Initialize resize observer
     const resizeObserver = new ResizeObserver(updateHeight)
     resizeObserver.observe(document.body)
-    updateHeight() // Initial height update
-
-    // Screenshot loading
-    const loadScreenshots = async () => {
-      try {
-        const existing = await window.electronAPI.getScreenshots()
-        setScreenshots(existing)
-        // Update height after screenshots load
-        setTimeout(updateHeight, 0)
-      } catch (error) {
-        console.error("Error loading screenshots:", error)
-        showToast("Error", "Failed to load existing screenshots", "error")
-      }
-    }
-
-    // Event handlers
-    const handleScreenshotTaken = (data: { path: string; preview: string }) => {
-      setScreenshots((prev) => [...prev, data].slice(-3))
-      // Update height after new screenshot
-      setTimeout(updateHeight, 0)
-    }
-
-    const handleProcessingSuccess = () => {
-      setIsProcessing(false)
-      showToast(
-        "Processing Complete",
-        "Your screenshots were processed successfully.",
-        "success"
-      )
-    }
-
-    const handleProcessingError = (error: string) => {
-      setIsProcessing(false)
-      showToast(
-        "Processing Failed",
-        "There was an error processing your screenshots.",
-        "error"
-      )
-      console.error("Processing error:", error)
-    }
-
-    const handleNoScreenshots = () => {
-      setIsProcessing(false)
-      showToast(
-        "No Screenshots",
-        "There are no screenshots to process.",
-        "neutral"
-      )
-    }
-
-    // Initialize
-    loadScreenshots()
+    updateHeight()
 
     // Set up event listeners
     const cleanupFunctions = [
-      window.electronAPI.onScreenshotTaken(handleScreenshotTaken),
-      window.electronAPI.onProcessingSuccess(handleProcessingSuccess),
-      window.electronAPI.onProcessingError(handleProcessingError),
-      window.electronAPI.onProcessingNoScreenshots(handleNoScreenshots)
+      window.electronAPI.onScreenshotTaken(() => refetch()),
+      window.electronAPI.onProcessingSuccess(() => {
+        showToast(
+          "Processing Complete",
+          "Your screenshots were processed successfully.",
+          "success"
+        )
+        setView("solutions")
+      }),
+      window.electronAPI.onProcessingError((error: string) => {
+        showToast(
+          "Processing Failed",
+          "There was an error processing your screenshots.",
+          "error"
+        )
+        console.error("Processing error:", error)
+      }),
+      window.electronAPI.onProcessingNoScreenshots(() => {
+        showToast(
+          "No Screenshots",
+          "There are no screenshots to process.",
+          "neutral"
+        )
+      })
     ]
 
     return () => {
       resizeObserver.disconnect()
       cleanupFunctions.forEach((cleanup) => cleanup())
     }
-  }, [])
+  }, []) // No more dependency on toggle
 
   return (
     <div className="bg-transparent">
