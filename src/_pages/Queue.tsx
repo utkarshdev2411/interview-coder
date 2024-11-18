@@ -158,20 +158,32 @@ const Queue: React.FC = () => {
             screenshots={screenshots}
             onDeleteScreenshot={handleDeleteScreenshot}
           />
+
           <div className="pt-2">
-            <p className="text-sm text-white backdrop-blur-md bg-black/30 rounded-lg p-2 flex flex-col gap-2">
-              <span className="flex items-center">
-                <kbd className="bg-white/20 backdrop-blur-sm rounded-md text-xs text-white border border-white/20 px-2 py-1 mr-2">
-                  ⌘ + ⇧ + H
-                </kbd>
-                Take screenshot (keeps latest 3)
-              </span>
-              <span className="flex items-center">
-                <kbd className="bg-white/20 backdrop-blur-sm rounded-md text-xs text-white border border-white/20 px-2 py-1 mr-2">
-                  ⌘ + ⇧ + J
-                </kbd>
-                Process screenshots
-              </span>
+            <p className="text-sm text-white backdrop-blur-md bg-black/30 rounded-lg p-2 flex flex-col gap-4">
+              {/* Improved visual hierarchy */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center">
+                  <kbd className="bg-white/20 backdrop-blur-sm rounded-md text-xs text-white border border-white/20 px-2 py-1">
+                    ⌘ + H
+                  </kbd>
+                  <span className="ml-2 text-xs">
+                    Take screenshot (keeps latest 3)
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <kbd className="bg-white/20 backdrop-blur-sm rounded-md text-xs text-white border border-white/20 px-2 py-1">
+                    ⌘ + ↵
+                  </kbd>
+                  <span className="ml-2 text-xs">Get solutions</span>
+                </div>
+                <div className="flex items-center">
+                  <kbd className="bg-white/20 backdrop-blur-sm rounded-md text-xs text-white border border-white/20 px-2 py-1">
+                    ⌘ + B
+                  </kbd>
+                  <span className="ml-2 text-xs">Toggle visibility</span>
+                </div>
+              </div>
             </p>
           </div>
         </div>

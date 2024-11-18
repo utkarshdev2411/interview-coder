@@ -115,7 +115,7 @@ function createWindow() {
   })
 }
 
-//LOGIC FOR CMD+SHIFT+B
+//LOGIC FOR CMD+B
 function toggleMainWindow() {
   if (!mainWindow) {
     createWindow()
@@ -150,7 +150,7 @@ function toggleMainWindow() {
   isWindowVisible = !isWindowVisible
 }
 
-// LOGIC FOR CMD+SHIFT+H
+// LOGIC FOR CMD+H
 async function captureScreenshot(): Promise<string> {
   if (!mainWindow) throw new Error("No main window available")
 
@@ -264,8 +264,12 @@ app.whenReady().then(() => {
     }
   })
 
+  ipcMain.handle("toggle-window", async () => {
+    toggleMainWindow()
+  })
+
   // Register global shortcut
-  globalShortcut.register("CommandOrControl+Shift+H", async () => {
+  globalShortcut.register("CommandOrControl+H", async () => {
     if (mainWindow) {
       console.log("Taking screenshot...")
       try {
@@ -281,7 +285,7 @@ app.whenReady().then(() => {
     }
   })
 
-  globalShortcut.register("CommandOrControl+Shift+J", async () => {
+  globalShortcut.register("CommandOrControl+Enter", async () => {
     if (mainWindow) {
       // Notify renderer that processing is starting
       mainWindow.webContents.send(PROCESSING_EVENTS.START)
@@ -334,7 +338,7 @@ app.whenReady().then(() => {
     }
   })
 
-  globalShortcut.register("CommandOrControl+Shift+B", () => {
+  globalShortcut.register("CommandOrControl+B", () => {
     toggleMainWindow()
     // If window exists and we're showing it, bring it to front
     if (mainWindow && !isWindowVisible) {

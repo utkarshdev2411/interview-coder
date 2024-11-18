@@ -16,7 +16,7 @@ const ScreenshotQueue: React.FC<ScreenshotQueueProps> = ({
 }) => {
   if (screenshots.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
+      <div className="flex items-center justify-center bg-gray-100 rounded-lg">
         <p className="text-gray-500">No screenshots taken yet</p>
       </div>
     )
@@ -25,7 +25,7 @@ const ScreenshotQueue: React.FC<ScreenshotQueueProps> = ({
   const displayScreenshots = screenshots.slice(0, 3)
 
   return (
-    <div className="grid grid-cols-4 gap-4 my-12">
+    <div className="grid grid-cols-4 gap-4">
       {displayScreenshots.map((screenshot, index) => (
         <ScreenshotItem
           key={screenshot.path}

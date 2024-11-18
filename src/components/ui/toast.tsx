@@ -40,7 +40,8 @@ const Toast = React.forwardRef<
   <ToastPrimitive.Root
     ref={ref}
     className={cn(
-      "group fixed inset-x-4 bottom-4 z-50 w-auto max-w-sm px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom",
+      "group fixed top-4 right-4 z-50 w-auto max-w-sm px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom",
+
       toastVariants[variant],
       className
     )}
@@ -55,7 +56,7 @@ const ToastAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitive.Action
     ref={ref}
-    className={cn("text-sm font-medium text-white hover:opacity-90", className)}
+    className={cn("text-xs font-medium text-white hover:opacity-90", className)}
     {...props}
   />
 ))
@@ -84,7 +85,7 @@ const ToastTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitive.Title
     ref={ref}
-    className={cn("font-bold text-lg", className)}
+    className={cn("font-semibold text-sm", className)}
     {...props}
   />
 ))
@@ -96,7 +97,7 @@ const ToastDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitive.Description
     ref={ref}
-    className={cn("text-sm opacity-90", className)}
+    className={cn("text-xs opacity-90", className)}
     {...props}
   />
 ))

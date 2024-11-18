@@ -5,6 +5,7 @@ import { ToastViewport } from "@radix-ui/react-toast"
 declare global {
   interface Window {
     electronAPI: {
+      toggleMainWindow: () => Promise<void>
       takeScreenshot: () => Promise<{ path: string; preview: string }>
       getScreenshots: () => Promise<Array<{ path: string; preview: string }>>
       deleteScreenshot: (
