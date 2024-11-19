@@ -29,8 +29,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener(PROCESSING_EVENTS.START, subscription)
     }
   },
-  onProcessingSuccess: (callback: () => void) => {
-    const subscription = () => callback()
+  onProcessingSuccess: (callback: (data: any) => void) => {
+    // Update this to pass the event data
+    const subscription = (_event: any, data: any) => callback(data)
     ipcRenderer.on(PROCESSING_EVENTS.SUCCESS, subscription)
     return () => {
       ipcRenderer.removeListener(PROCESSING_EVENTS.SUCCESS, subscription)
@@ -65,7 +66,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onSolutionsReady: (callback: (solutions: string) => void) => {
     const subscription = (_: any, solutions: string) => callback(solutions)
     ipcRenderer.on("solutions-ready", subscription)
-    // Return cleanup function
     return () => {
       ipcRenderer.removeListener("solutions-ready", subscription)
     }

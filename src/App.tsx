@@ -1,9 +1,9 @@
 import { ToastProvider } from "./components/ui/toast"
 import Queue from "./_pages/Queue"
 import { ToastViewport } from "@radix-ui/react-toast"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Solutions from "./_pages/Solutions"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { QueryClient, QueryClientProvider } from "react-query"
 
 declare global {
   interface Window {
@@ -21,16 +21,35 @@ declare global {
         screenshots: Array<{ path: string; preview: string }>
       ) => Promise<{ success: boolean; data?: any; error?: string }>
       onProcessingStart: (callback: () => void) => () => void
-      onProcessingSuccess: (callback: () => void) => () => void
+      onProcessingSuccess: (callback: (data: any) => void) => () => void
       onProcessingError: (callback: (error: string) => void) => () => void
       onProcessingNoScreenshots: (callback: () => void) => () => void
       updateContentHeight: (height: number) => Promise<void>
     }
   }
 }
+// Create QueryClient outside component
+const queryClient = new QueryClient()
+
 const App: React.FC = () => {
   const [view, setView] = useState<"queue" | "solutions">("queue")
-  const queryClient = new QueryClient()
+
+  useEffect(() => {
+    const cleanupFunctions = [
+      window.electronAPI.onProcessingStart(() => {
+        setView("solutions")
+      }),
+      window.electronAPI.onProcessingSuccess((data) => {
+        console.log("Processing success in App.tsx:", data)
+        queryClient.setQueryData(["solutions"], data)
+      }),
+
+      window.electronAPI.onProcessingError(() => {
+        setView("queue")
+      })
+    ]
+    return () => cleanupFunctions.forEach((cleanup) => cleanup())
+  }, []) // Remove queryClient dependency since it's now constant
 
   return (
     <div className="bg-transparent w-fit">
