@@ -1,6 +1,7 @@
 // Solutions.tsx
 import { useQueryClient } from "react-query"
 import { useEffect, useState } from "react"
+import Processing from "../components/Loading/Processing"
 
 const Solutions: React.FC = () => {
   const queryClient = useQueryClient()
@@ -26,7 +27,7 @@ const Solutions: React.FC = () => {
     return (
       <div>
         {/* Your loading UI here */}
-        <div>Processing your screenshots...</div>
+        <Processing />
       </div>
     )
   }

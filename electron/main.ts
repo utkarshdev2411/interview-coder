@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, globalShortcut } from "electron"
+import { app, BrowserWindow, screen, ipcMain, globalShortcut } from "electron"
 import path from "node:path"
 import fs from "node:fs"
 import { v4 as uuidv4 } from "uuid"
@@ -8,8 +8,14 @@ import axios from "axios"
 
 let mainWindow: BrowserWindow | null = null
 let isWindowVisible = true
+let view = "queue"
 let windowPosition: { x: number; y: number } | null = null
 let windowSize: { width: number; height: number } | null = null
+
+function getScreenHeight() {
+  const primaryDisplay = screen.getPrimaryDisplay()
+  return primaryDisplay.workAreaSize.height
+}
 
 const screenshotDir = path.join(app.getPath("userData"), "screenshots")
 
@@ -38,9 +44,10 @@ ipcMain.handle("update-content-height", async (event, height: number) => {
 
 function createWindow() {
   if (mainWindow !== null) return
+  const screenHeight = getScreenHeight()
   const windowSettings = {
     width: 1000,
-    height: 400,
+    height: screenHeight,
     x: 0,
     y: 0,
     webPreferences: {
@@ -186,7 +193,10 @@ isWindowVisible = false
 // LOGIC FOR CMD+H
 async function captureScreenshot(): Promise<string> {
   if (!mainWindow) throw new Error("No main window available")
-
+  if (view != "queue") {
+    console.log("You can't take a screenshot in the solutions view")
+    throw new Error("You can't take a screenshot in the solutions view")
+  }
   hideMainWindow()
   const screenshotPath = path.join(screenshotDir, `${uuidv4()}.png`)
   await screenshot({ filename: screenshotPath })
@@ -247,6 +257,7 @@ async function processScreenshotsHelper(screenshots: Array<{ path: string }>) {
       }
     )
 
+    view = "solutions"
     return { success: true, data: response.data }
   } catch (error) {
     console.error("Processing error:", error)
@@ -310,6 +321,7 @@ app.whenReady().then(() => {
   globalShortcut.register("CommandOrControl+H", async () => {
     if (mainWindow) {
       console.log("Taking screenshot...")
+      //it shouldn't work if your window isn't in the queue mode
       try {
         const screenshotPath = await captureScreenshot()
         const preview = await getImagePreview(screenshotPath)

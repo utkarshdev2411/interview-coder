@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { useQuery } from "react-query"
-import ScreenshotQueue from "../components/ScreenshotQueue"
+import ScreenshotQueue from "../components/Queue"
 import {
   Toast,
   ToastTitle,
