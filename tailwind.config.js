@@ -3,10 +3,14 @@ module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        // If you have Söhne:
+        sans: ["Inter", "system-ui", "sans-serif"]
+      },
       animation: {
         in: "in 0.2s ease-out",
         out: "out 0.2s ease-in",
-        shimmer: "shimmer 2s linear infinite"
+        pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
       },
       keyframes: {
         in: {
@@ -17,12 +21,12 @@ module.exports = {
           "0%": { transform: "translateY(0)", opacity: 1 },
           "100%": { transform: "translateY(100%)", opacity: 0 }
         },
-        shimmer: {
-          "0%": {
-            backgroundPosition: "200% 0"
+        pulse: {
+          "0%, 100%": {
+            opacity: 1
           },
-          "100%": {
-            backgroundPosition: "-200% 0"
+          "50%": {
+            opacity: 0.5
           }
         }
       }

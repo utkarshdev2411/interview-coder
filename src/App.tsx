@@ -1,7 +1,7 @@
 import { ToastProvider } from "./components/ui/toast"
 import Queue from "./_pages/Queue"
 import { ToastViewport } from "@radix-ui/react-toast"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Solutions from "./_pages/Solutions"
 import { QueryClient, QueryClientProvider } from "react-query"
 
@@ -28,11 +28,50 @@ declare global {
     }
   }
 }
-// Create QueryClient outside component
+
 const queryClient = new QueryClient()
 
 const App: React.FC = () => {
   const [view, setView] = useState<"queue" | "solutions">("queue")
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Effect for height monitoring
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const updateHeight = () => {
+      if (!containerRef.current) return
+      const height = containerRef.current.scrollHeight
+      window.electronAPI?.updateContentHeight(height)
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateHeight()
+    })
+
+    // Initial height update
+    updateHeight()
+
+    // Observe for changes
+    resizeObserver.observe(containerRef.current)
+
+    // Also update height when view changes
+    const mutationObserver = new MutationObserver(() => {
+      updateHeight()
+    })
+
+    mutationObserver.observe(containerRef.current, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true
+    })
+
+    return () => {
+      resizeObserver.disconnect()
+      mutationObserver.disconnect()
+    }
+  }, [view]) // Re-run when view changes
 
   useEffect(() => {
     const cleanupFunctions = [
@@ -40,22 +79,25 @@ const App: React.FC = () => {
         setView("solutions")
       }),
       window.electronAPI.onProcessingSuccess((data) => {
-        console.log("Processing success in App.tsx:", data)
         queryClient.setQueryData(["solutions"], data)
       }),
-
       window.electronAPI.onProcessingError(() => {
         setView("queue")
       })
     ]
     return () => cleanupFunctions.forEach((cleanup) => cleanup())
-  }, []) // Remove queryClient dependency since it's now constant
+  }, [])
 
   return (
-    <div className="bg-transparent w-fit">
+    <div
+      ref={containerRef}
+      className="min-h-0 overflow-visible  w-fit" // Match your electron window width
+    >
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          {view === "queue" ? <Queue setView={setView} /> : <Solutions />}
+          <div className="p-4">
+            {view === "queue" ? <Queue setView={setView} /> : <Solutions />}
+          </div>
           <ToastViewport />
         </ToastProvider>
       </QueryClientProvider>

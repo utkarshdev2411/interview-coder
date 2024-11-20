@@ -48,6 +48,7 @@ function createWindow() {
   const windowSettings = {
     width: 1000,
     height: screenHeight,
+    minHeight: 100,
     x: 0,
     y: 0,
     webPreferences: {
