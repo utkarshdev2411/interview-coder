@@ -4,6 +4,7 @@ import { ToastViewport } from "@radix-ui/react-toast"
 import { useEffect, useRef, useState } from "react"
 import Solutions from "./_pages/Solutions"
 import { QueryClient, QueryClientProvider } from "react-query"
+import axios from "axios"
 
 declare global {
   interface Window {
@@ -78,9 +79,29 @@ const App: React.FC = () => {
       window.electronAPI.onProcessingStart(() => {
         setView("solutions")
       }),
-      window.electronAPI.onProcessingSuccess((data) => {
-        queryClient.setQueryData(["solutions"], data)
+      window.electronAPI.onProcessingSuccess(async (data) => {
+        queryClient.setQueryData(["problem_statement"], data)
+        queryClient.invalidateQueries(["problem_statement"])
+
+        try {
+          // Step 2: Generate solutions
+          console.log("Trying to generate solutions")
+          const solutionsResponse = await axios.post(
+            "http://0.0.0.0:8000/generate_solutions",
+            { problem_info: data },
+            {
+              timeout: 300000
+            }
+          )
+          console.log("Solutions response:", solutionsResponse.data)
+
+          const solutions = solutionsResponse.data.solutions.optimized.code
+          queryClient.setQueryData(["solution"], solutions)
+        } catch (error) {
+          console.log("error generated solutions")
+        }
       }),
+
       window.electronAPI.onProcessingError(() => {
         setView("queue")
       })
@@ -91,7 +112,8 @@ const App: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="min-h-0 overflow-visible  w-fit" // Match your electron window width
+      className="min-h-0 overflow-visible "
+      style={{ width: "600px" }} // Match your electron window width
     >
       <QueryClientProvider client={queryClient}>
         <ToastProvider>

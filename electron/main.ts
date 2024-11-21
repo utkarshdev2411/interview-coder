@@ -48,7 +48,6 @@ function createWindow() {
   const windowSettings = {
     width: 1000,
     height: screenHeight,
-    minHeight: 100,
     x: 0,
     y: 0,
     webPreferences: {
@@ -68,11 +67,10 @@ function createWindow() {
     // Optional: remove the window shadow
     hasShadow: false,
     backgroundColor: "#00000000",
-    focusable: false
+    focusable: true
   }
-
   mainWindow = new BrowserWindow(windowSettings)
-
+  // mainWindow.webContents.openDevTools()
   // Set the window level to float above everything (including fullscreen apps)
   if (process.platform === "darwin") {
     mainWindow.setVisibleOnAllWorkspaces(true, {
@@ -81,28 +79,23 @@ function createWindow() {
     // This is crucial for floating above fullscreen apps
     mainWindow.setAlwaysOnTop(true, "floating")
   }
-
   mainWindow.loadURL("http://localhost:5173")
-
   // Store initial position and size
   const bounds = mainWindow.getBounds()
   windowPosition = { x: bounds.x, y: bounds.y }
   windowSize = { width: bounds.width, height: bounds.height }
-
   mainWindow.on("move", () => {
     if (mainWindow) {
       const bounds = mainWindow.getBounds()
       windowPosition = { x: bounds.x, y: bounds.y }
     }
   })
-
   mainWindow.on("resize", () => {
     if (mainWindow) {
       const bounds = mainWindow.getBounds()
       windowSize = { width: bounds.width, height: bounds.height }
     }
   })
-
   mainWindow.on("closed", () => {
     mainWindow = null
     isWindowVisible = true
@@ -130,6 +123,9 @@ function toggleMainWindow() {
     windowSize = { width: bounds.width, height: bounds.height }
     mainWindow.hide()
   } else {
+    // Get the currently focused window before showing
+    const focusedWindow = require("electron").BrowserWindow.getFocusedWindow()
+
     // Restore window at the last position and size
     if (windowPosition && windowSize) {
       mainWindow.setBounds({
@@ -139,7 +135,14 @@ function toggleMainWindow() {
         height: windowSize.height
       })
     }
-    mainWindow.show()
+
+    // Show window without activating it
+    mainWindow.showInactive()
+
+    // If there was a focused window, restore focus to it
+    if (focusedWindow && !focusedWindow.isDestroyed()) {
+      focusedWindow.focus()
+    }
   }
 
   isWindowVisible = !isWindowVisible

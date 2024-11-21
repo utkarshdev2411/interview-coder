@@ -4,15 +4,24 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        // If you have Söhne:
+        // using inter as the default for sans
         sans: ["Inter", "system-ui", "sans-serif"]
       },
       animation: {
         in: "in 0.2s ease-out",
         out: "out 0.2s ease-in",
-        pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+        pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        shimmer: "shimmer 2s linear infinite"
       },
       keyframes: {
+        shimmer: {
+          "0%": {
+            backgroundPosition: "200% 0"
+          },
+          "100%": {
+            backgroundPosition: "-200% 0"
+          }
+        },
         in: {
           "0%": { transform: "translateY(100%)", opacity: 0 },
           "100%": { transform: "translateY(0)", opacity: 1 }
