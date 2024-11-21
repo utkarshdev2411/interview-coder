@@ -1,7 +1,6 @@
 import { useQueryClient } from "react-query"
 import { useEffect, useState } from "react"
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
-import { darcula } from "react-syntax-highlighter/dist/esm/styles/prism"
+import { CodeBlock, dracula } from "react-code-blocks"
 
 interface problemStatementData {
   problem_statement: string
@@ -21,6 +20,9 @@ interface problemStatementData {
   test_cases: any[]
   validation_type: string
   difficulty: string
+}
+interface ThoughtsData {
+  thoughts: string[]
 }
 
 // Create an array of widths that look natural for text
@@ -57,7 +59,7 @@ const ContentSection = ({
         <SkeletonLine width={naturalWidths[0]} /> {/* Shorter line */}
       </div>
     ) : (
-      <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[1000px]">
+      <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px]">
         {content}
       </div>
     )}
@@ -79,20 +81,23 @@ const SolutionSection = ({
     </h2>
     {isLoading ? (
       <div className="space-y-1.5">
-        <SkeletonLine width={naturalWidths[2]} /> {/* Long line */}
-        <SkeletonLine width={naturalWidths[1]} /> {/* Medium line */}
-        <SkeletonLine width={naturalWidths[1]} /> {/* Medium line */}
-        <SkeletonLine width={naturalWidths[0]} /> {/* Shorter line */}
+        <SkeletonLine width={naturalWidths[2]} />
+        <SkeletonLine width={naturalWidths[1]} />
+        <SkeletonLine width={naturalWidths[1]} />
+        <SkeletonLine width={naturalWidths[0]} />
       </div>
     ) : (
-      <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[400px]">
-        <SyntaxHighlighter
+      <div className="">
+        <CodeBlock
+          text={content as string}
           language="python"
-          style={darcula}
-          styles={{ width: "400px" }}
-        >
-          {content as string}
-        </SyntaxHighlighter>
+          theme={dracula}
+          customStyle={{
+            maxWidth: "550px",
+            overflow: "auto",
+            whiteSpace: "pre-wrap"
+          }}
+        />
       </div>
     )}
   </div>
@@ -104,15 +109,24 @@ const Solutions: React.FC = () => {
     useState<problemStatementData | null>(null)
 
   const [solutionData, setSolutionData] = useState<string | null>(null)
+  const [thoughtsData, setThoughtsData] = useState<ThoughtsData | null>(null)
 
   useEffect(() => {
-    setProblemStatementData(queryClient.getQueryData(["solution"]) || null)
+    setProblemStatementData(
+      queryClient.getQueryData(["problem_statement"]) || null
+    )
     setSolutionData(queryClient.getQueryData(["solution"]) || null)
+    setThoughtsData(queryClient.getQueryData(["thoughts"]) || null) // Updated this line
+
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (event?.query.queryKey[0] === "problem_statement") {
         setProblemStatementData(
           queryClient.getQueryData(["problem_statement"]) || null
         )
+      }
+      if (event?.query.queryKey[0] === "thoughts") {
+        // Updated this line
+        setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
       }
       if (event?.query.queryKey[0] === "solution") {
         setSolutionData(queryClient.getQueryData(["solution"]) || null)
@@ -122,7 +136,7 @@ const Solutions: React.FC = () => {
   }, [queryClient])
 
   return (
-    <div className="w-full text-sm text-black backdrop-blur-md bg-black/60">
+    <div className="w-full text-sm text-black backdrop-blur-md bg-black/60 rounded-md">
       <div className=" rounded-lg overflow-hidden ">
         <div className="px-4 py-3 space-y-4">
           {/* Problem Statement */}
@@ -130,6 +144,25 @@ const Solutions: React.FC = () => {
             title="Problem Statement"
             content={problemStatementData?.problem_statement}
             isLoading={!problemStatementData}
+          />
+          {/* Thoughts */}
+          <ContentSection
+            title="Thoughts"
+            content={
+              thoughtsData && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    {thoughtsData.thoughts.map((thought, index) => (
+                      <div key={index} className="flex items-start gap-2">
+                        <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
+                        <div>{thought}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            }
+            isLoading={!thoughtsData}
           />
           {/* Solution  */}
           <SolutionSection
@@ -166,7 +199,7 @@ const Solutions: React.FC = () => {
                     className="flex items-start gap-2 text-[13px] leading-[1.4] text-gray-100"
                   >
                     <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
-                    <div className="max-w-[1000px]">
+                    <div className="max-w-[600px]">
                       {constraint.description}
                     </div>
                   </div>

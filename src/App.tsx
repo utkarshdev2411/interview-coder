@@ -73,7 +73,6 @@ const App: React.FC = () => {
       mutationObserver.disconnect()
     }
   }, [view]) // Re-run when view changes
-
   useEffect(() => {
     const cleanupFunctions = [
       window.electronAPI.onProcessingStart(() => {
@@ -82,7 +81,6 @@ const App: React.FC = () => {
       window.electronAPI.onProcessingSuccess(async (data) => {
         queryClient.setQueryData(["problem_statement"], data)
         queryClient.invalidateQueries(["problem_statement"])
-
         try {
           // Step 2: Generate solutions
           console.log("Trying to generate solutions")
@@ -95,13 +93,20 @@ const App: React.FC = () => {
           )
           console.log("Solutions response:", solutionsResponse.data)
 
-          const solutions = solutionsResponse.data.solutions.optimized.code
-          queryClient.setQueryData(["solution"], solutions)
+          // Extract solution code and thoughts from the new schema
+          const solutionCode = solutionsResponse.data.solution.code
+          const thoughtProcess = {
+            thoughts: solutionsResponse.data.solution.thoughts,
+            description: solutionsResponse.data.solution.description
+          }
+
+          // Store both code and thoughts in React Query
+          queryClient.setQueryData(["solution"], solutionCode)
+          queryClient.setQueryData(["thoughts"], thoughtProcess)
         } catch (error) {
-          console.log("error generated solutions")
+          console.log("error generating solutions")
         }
       }),
-
       window.electronAPI.onProcessingError(() => {
         setView("queue")
       })
@@ -112,7 +117,7 @@ const App: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="min-h-0 overflow-visible "
+      className="min-h-0 overflow-hidden "
       style={{ width: "600px" }} // Match your electron window width
     >
       <QueryClientProvider client={queryClient}>

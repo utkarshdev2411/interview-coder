@@ -70,7 +70,6 @@ function createWindow() {
     focusable: true
   }
   mainWindow = new BrowserWindow(windowSettings)
-  // mainWindow.webContents.openDevTools()
   // Set the window level to float above everything (including fullscreen apps)
   if (process.platform === "darwin") {
     mainWindow.setVisibleOnAllWorkspaces(true, {
