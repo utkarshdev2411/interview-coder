@@ -46,7 +46,7 @@ function createWindow() {
   if (mainWindow !== null) return
   const screenHeight = getScreenHeight()
   const windowSettings = {
-    width: 1000,
+    width: 600,
     height: screenHeight,
     x: 0,
     y: 0,
