@@ -10,7 +10,8 @@ const PROCESSING_EVENTS = {
   START: "processing-start",
   SUCCESS: "processing-success",
   ERROR: "processing-error",
-  NO_SCREENSHOTS: "processing-no-screenshots"
+  NO_SCREENSHOTS: "processing-no-screenshots",
+  EXTRA_SUCCESS: "extra-processing-success"
 } as const
 
 //our preload.ts allows us to expose certain functions used in the main.ts to the web environment, which we can access in our app.tsx
@@ -33,6 +34,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on(PROCESSING_EVENTS.SUCCESS, subscription)
     return () => {
       ipcRenderer.removeListener(PROCESSING_EVENTS.SUCCESS, subscription)
+    }
+  },
+  onProcessingExtraSuccess: (callback: (data: any) => void) => {
+    // Update this to pass the event data
+    const subscription = (_event: any, data: any) => callback(data)
+    ipcRenderer.on(PROCESSING_EVENTS.EXTRA_SUCCESS, subscription)
+    return () => {
+      ipcRenderer.removeListener(PROCESSING_EVENTS.EXTRA_SUCCESS, subscription)
     }
   },
   onProcessingError: (callback: (error: string) => void) => {

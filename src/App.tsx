@@ -21,6 +21,7 @@ declare global {
       ) => () => void
       onProcessingStart: (callback: () => void) => () => void
       onProcessingSuccess: (callback: (data: any) => void) => () => void
+      onProcessingExtraSuccess: (callback: (data: any) => void) => () => void
       onProcessingError: (callback: (error: string) => void) => () => void
       onProcessingNoScreenshots: (callback: () => void) => () => void
       updateContentHeight: (height: number) => Promise<void>
@@ -104,9 +105,6 @@ const App: React.FC = () => {
         } catch (error) {
           console.log("error generating solutions")
         }
-      }),
-      window.electronAPI.onProcessingError(() => {
-        setView("queue")
       })
     ]
     return () => cleanupFunctions.forEach((cleanup) => cleanup())

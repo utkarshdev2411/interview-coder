@@ -93,6 +93,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
           "There was an error processing your screenshots.",
           "error"
         )
+        setView("queue") //usually, processing start would set the view to solutions, but if it errors out then it should revert to queue
         console.error("Processing error:", error)
       }),
       window.electronAPI.onProcessingNoScreenshots(() => {

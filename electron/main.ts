@@ -6,490 +6,584 @@ import screenshot from "screenshot-desktop"
 import FormData from "form-data"
 import axios from "axios"
 
-let mainWindow: BrowserWindow | null = null
-let isWindowVisible = true
-let view = "queue"
-let windowPosition: { x: number; y: number } | null = null
-let windowSize: { width: number; height: number } | null = null
+class AppState {
+  private static instance: AppState | null = null
 
-function getScreenHeight() {
-  const primaryDisplay = screen.getPrimaryDisplay()
-  return primaryDisplay.workAreaSize.height
-}
+  // Window management
+  private mainWindow: BrowserWindow | null = null
+  private isWindowVisible: boolean = true
+  private windowPosition: { x: number; y: number } | null = null
+  private windowSize: { width: number; height: number } | null = null
 
-const screenshotDir = path.join(app.getPath("userData"), "screenshots")
-const extraScreenshotDir = path.join(
-  app.getPath("userData"),
-  "extra_screenshots"
-)
-
-const PROCESSING_EVENTS = {
-  START: "processing-start",
-  SUCCESS: "processing-success",
-  ERROR: "processing-error",
-  NO_SCREENSHOTS: "processing-no-screenshots"
-} as const
-
-// Create the screenshot directory if it doesn't exist
-if (!fs.existsSync(screenshotDir)) {
-  fs.mkdirSync(screenshotDir)
-}
-if (!fs.existsSync(extraScreenshotDir)) {
-  fs.mkdirSync(extraScreenshotDir)
-}
-
-// Screenshot queue logic
-let screenshotQueue: string[] = []
-let extraScreenshotQueue: string[] = []
-const MAX_SCREENSHOTS = 5
-
-//additional context queue logic
-let additionalContextQueue: string[] = []
-
-ipcMain.handle("update-content-height", async (event, height: number) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    const [width] = mainWindow.getSize()
-    mainWindow.setSize(width, Math.ceil(height))
+  // View and queue management
+  private view: "queue" | "solutions" = "queue"
+  private screenshotQueue: string[] = []
+  private extraScreenshotQueue: string[] = []
+  private readonly MAX_SCREENSHOTS = 5
+  private problemInfo: {
+    problem_statement: string
+    input_format: Record<string, any>
+    output_format: Record<string, any>
+    constraints: Array<Record<string, any>>
+    test_cases: Array<Record<string, any>>
   }
-})
 
-function createWindow() {
-  if (mainWindow !== null) return
-  const screenHeight = getScreenHeight()
-  const windowSettings = {
-    width: 600,
-    height: screenHeight,
-    x: 0,
-    y: 0,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, "preload.js")
-    },
-    show: true,
-    // Add these settings to make the window float
-    alwaysOnTop: true,
-    frame: false,
-    transparent: true,
-    // These settings help with macOS behavior
-    visualEffectState: "active" as const,
-    // Make it work with macOS fullscreen apps
-    fullscreenable: false,
-    // Optional: remove the window shadow
-    hasShadow: false,
-    backgroundColor: "#00000000",
-    focusable: true
+  // Directory paths
+  private readonly screenshotDir: string
+  private readonly extraScreenshotDir: string
+
+  // Processing events
+  private readonly PROCESSING_EVENTS = {
+    START: "processing-start",
+    SUCCESS: "processing-success",
+    ERROR: "processing-error",
+    NO_SCREENSHOTS: "processing-no-screenshots",
+    EXTRA_SUCCESS: "extra-processing-success"
+  } as const
+
+  private constructor() {
+    // Initialize directories
+    this.screenshotDir = path.join(app.getPath("userData"), "screenshots")
+    this.extraScreenshotDir = path.join(
+      app.getPath("userData"),
+      "extra_screenshots"
+    )
+
+    // Create directories if they don't exist
+    if (!fs.existsSync(this.screenshotDir)) {
+      fs.mkdirSync(this.screenshotDir)
+    }
+    if (!fs.existsSync(this.extraScreenshotDir)) {
+      fs.mkdirSync(this.extraScreenshotDir)
+    }
+
+    this.initializeIpcHandlers()
   }
-  mainWindow = new BrowserWindow(windowSettings)
-  // Set the window level to float above everything (including fullscreen apps)
-  if (process.platform === "darwin") {
-    mainWindow.setVisibleOnAllWorkspaces(true, {
-      visibleOnFullScreen: true
+
+  public static getInstance(): AppState {
+    if (!AppState.instance) {
+      AppState.instance = new AppState()
+    }
+    return AppState.instance
+  }
+
+  // Getters
+  public getMainWindow(): BrowserWindow | null {
+    return this.mainWindow
+  }
+
+  public getView(): "queue" | "solutions" {
+    return this.view
+  }
+
+  public isVisible(): boolean {
+    return this.isWindowVisible
+  }
+
+  private getScreenHeight(): number {
+    const primaryDisplay = screen.getPrimaryDisplay()
+    return primaryDisplay.workAreaSize.height
+  }
+
+  // Window management methods
+  public createWindow(): void {
+    if (this.mainWindow !== null) return
+
+    const screenHeight = this.getScreenHeight()
+    const windowSettings = {
+      width: 600,
+      height: screenHeight,
+      x: 0,
+      y: 0,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, "preload.js")
+      },
+      show: true,
+      alwaysOnTop: true,
+      frame: false,
+      transparent: true,
+      visualEffectState: "active" as const,
+      fullscreenable: false,
+      hasShadow: false,
+      backgroundColor: "#00000000",
+      focusable: true
+    }
+
+    this.mainWindow = new BrowserWindow(windowSettings)
+
+    if (process.platform === "darwin") {
+      this.mainWindow.setVisibleOnAllWorkspaces(true, {
+        visibleOnFullScreen: true
+      })
+      this.mainWindow.setAlwaysOnTop(true, "floating")
+    }
+
+    this.mainWindow.loadURL("http://localhost:5173")
+
+    const bounds = this.mainWindow.getBounds()
+    this.windowPosition = { x: bounds.x, y: bounds.y }
+    this.windowSize = { width: bounds.width, height: bounds.height }
+
+    this.setupWindowListeners()
+  }
+  private setupWindowListeners(): void {
+    if (!this.mainWindow) return
+
+    this.mainWindow.on("move", () => {
+      if (this.mainWindow) {
+        const bounds = this.mainWindow.getBounds()
+        this.windowPosition = { x: bounds.x, y: bounds.y }
+      }
     })
-    // This is crucial for floating above fullscreen apps
-    mainWindow.setAlwaysOnTop(true, "floating")
-  }
-  mainWindow.loadURL("http://localhost:5173")
-  // Store initial position and size
-  const bounds = mainWindow.getBounds()
-  windowPosition = { x: bounds.x, y: bounds.y }
-  windowSize = { width: bounds.width, height: bounds.height }
-  mainWindow.on("move", () => {
-    if (mainWindow) {
-      const bounds = mainWindow.getBounds()
-      windowPosition = { x: bounds.x, y: bounds.y }
-    }
-  })
-  mainWindow.on("resize", () => {
-    if (mainWindow) {
-      const bounds = mainWindow.getBounds()
-      windowSize = { width: bounds.width, height: bounds.height }
-    }
-  })
-  mainWindow.on("closed", () => {
-    mainWindow = null
-    isWindowVisible = false
-    windowPosition = null
-    windowSize = null
-  })
-}
 
-//LOGIC FOR CMD+B, TOGGLING VISIBILITY
-function hideMainWindow() {
-  if (!mainWindow) {
-    createWindow()
-    return
-  }
+    this.mainWindow.on("resize", () => {
+      if (this.mainWindow) {
+        const bounds = this.mainWindow.getBounds()
+        this.windowSize = { width: bounds.width, height: bounds.height }
+      }
+    })
 
-  if (mainWindow.isDestroyed()) {
-    createWindow()
-    return
-  }
-
-  // Store current position and size before hiding
-  const bounds = mainWindow.getBounds()
-  windowPosition = { x: bounds.x, y: bounds.y }
-  windowSize = { width: bounds.width, height: bounds.height }
-  mainWindow.hide()
-
-  isWindowVisible = false
-}
-
-function showMainWindow() {
-  if (!mainWindow) {
-    createWindow()
-    return
-  }
-
-  if (mainWindow.isDestroyed()) {
-    createWindow()
-    return
-  }
-
-  // Get the currently focused window before showing
-  const focusedWindow = require("electron").BrowserWindow.getFocusedWindow()
-
-  if (windowPosition && windowSize) {
-    mainWindow.setBounds({
-      x: windowPosition.x,
-      y: windowPosition.y,
-      width: windowSize.width,
-      height: windowSize.height
+    this.mainWindow.on("closed", () => {
+      this.mainWindow = null
+      this.isWindowVisible = false
+      this.windowPosition = null
+      this.windowSize = null
     })
   }
 
-  mainWindow.showInactive()
-
-  // If there was a focused window, restore focus to it
-  if (focusedWindow && !focusedWindow.isDestroyed()) {
-    focusedWindow.focus()
-  }
-
-  isWindowVisible = true
-}
-
-function toggleMainWindow() {
-  if (isWindowVisible) {
-    hideMainWindow()
-  } else {
-    showMainWindow()
-  }
-}
-// LOGIC FOR CMD+H
-async function takeScreenshot(): Promise<string> {
-  if (!mainWindow) throw new Error("No main window available")
-
-  hideMainWindow()
-  let screenshotPath = ""
-  if (view == "queue") {
-    screenshotPath = path.join(screenshotDir, `${uuidv4()}.png`)
-    await screenshot({ filename: screenshotPath })
-
-    // Add to queue and maintain max size
-    screenshotQueue.push(screenshotPath)
-    if (screenshotQueue.length > MAX_SCREENSHOTS) {
-      const removedPath = screenshotQueue.shift()
-      if (removedPath) {
-        try {
-          await fs.promises.unlink(removedPath)
-        } catch (error) {
-          console.error("Error removing old screenshot:", error)
-        }
-      }
+  // Window visibility methods
+  public hideMainWindow(): void {
+    if (!this.mainWindow) {
+      this.createWindow()
+      return
     }
-  } else {
-    screenshotPath = path.join(extraScreenshotDir, `${uuidv4()}.png`)
-    await screenshot({ filename: screenshotPath })
 
-    // Add to queue and maintain max size
-    extraScreenshotQueue.push(screenshotPath)
-    if (extraScreenshotQueue.length > MAX_SCREENSHOTS) {
-      const removedPath = extraScreenshotQueue.shift()
-      if (removedPath) {
-        try {
-          await fs.promises.unlink(removedPath)
-        } catch (error) {
-          console.error("Error removing old screenshot:", error)
-        }
-      }
+    if (this.mainWindow.isDestroyed()) {
+      this.createWindow()
+      return
+    }
+
+    const bounds = this.mainWindow.getBounds()
+    this.windowPosition = { x: bounds.x, y: bounds.y }
+    this.windowSize = { width: bounds.width, height: bounds.height }
+    this.mainWindow.hide()
+    this.isWindowVisible = false
+  }
+
+  public showMainWindow(): void {
+    if (!this.mainWindow) {
+      this.createWindow()
+      return
+    }
+
+    if (this.mainWindow.isDestroyed()) {
+      this.createWindow()
+      return
+    }
+
+    const focusedWindow = BrowserWindow.getFocusedWindow()
+
+    if (this.windowPosition && this.windowSize) {
+      this.mainWindow.setBounds({
+        x: this.windowPosition.x,
+        y: this.windowPosition.y,
+        width: this.windowSize.width,
+        height: this.windowSize.height
+      })
+    }
+
+    this.mainWindow.showInactive()
+
+    if (focusedWindow && !focusedWindow.isDestroyed()) {
+      focusedWindow.focus()
+    }
+
+    this.isWindowVisible = true
+  }
+
+  public toggleMainWindow(): void {
+    if (this.isWindowVisible) {
+      this.hideMainWindow()
+    } else {
+      this.showMainWindow()
     }
   }
 
-  showMainWindow()
-  return screenshotPath
-}
+  // Screenshot management methods
+  private async takeScreenshot(): Promise<string> {
+    if (!this.mainWindow) throw new Error("No main window available")
 
-// Helper function to get image previews
-async function getImagePreview(filepath: string): Promise<string> {
-  try {
-    const data = await fs.promises.readFile(filepath)
-    return `data:image/png;base64,${data.toString("base64")}`
-  } catch (error) {
-    console.error("Error reading image:", error)
-    throw error
-  }
-}
+    this.hideMainWindow()
+    let screenshotPath = ""
 
-async function processScreenshots() {
-  if (mainWindow) {
-    if (view == "queue") {
-      if (screenshotQueue.length === 0) {
-        mainWindow.webContents.send(PROCESSING_EVENTS.NO_SCREENSHOTS)
-        return
-      }
+    if (this.view === "queue") {
+      screenshotPath = path.join(this.screenshotDir, `${uuidv4()}.png`)
+      await screenshot({ filename: screenshotPath })
 
-      mainWindow.webContents.send(PROCESSING_EVENTS.START)
-      try {
-        const screenshots = await Promise.all(
-          screenshotQueue.map(async (path) => ({
-            path,
-            preview: await getImagePreview(path)
-          }))
-        )
-
-        const result = await processScreenshotsHelper(screenshots)
-
-        if (result.success) {
-          console.log("Processing success:", result.data)
-
-          mainWindow.webContents.send(PROCESSING_EVENTS.SUCCESS, result.data)
-        } else {
-          mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, result.error)
+      this.screenshotQueue.push(screenshotPath)
+      if (this.screenshotQueue.length > this.MAX_SCREENSHOTS) {
+        const removedPath = this.screenshotQueue.shift()
+        if (removedPath) {
+          try {
+            await fs.promises.unlink(removedPath)
+          } catch (error) {
+            console.error("Error removing old screenshot:", error)
+          }
         }
-      } catch (error) {
-        console.error("Processing error:", error)
-        mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, error.message)
       }
     } else {
-      if (extraScreenshotQueue.length === 0) {
-        console.log("No extra screenshots to process")
-        mainWindow.webContents.send(PROCESSING_EVENTS.NO_SCREENSHOTS)
+      screenshotPath = path.join(this.extraScreenshotDir, `${uuidv4()}.png`)
+      await screenshot({ filename: screenshotPath })
+
+      this.extraScreenshotQueue.push(screenshotPath)
+      if (this.extraScreenshotQueue.length > this.MAX_SCREENSHOTS) {
+        const removedPath = this.extraScreenshotQueue.shift()
+        if (removedPath) {
+          try {
+            await fs.promises.unlink(removedPath)
+          } catch (error) {
+            console.error("Error removing old screenshot:", error)
+          }
+        }
+      }
+    }
+
+    this.showMainWindow()
+    return screenshotPath
+  }
+
+  private async getImagePreview(filepath: string): Promise<string> {
+    try {
+      const data = await fs.promises.readFile(filepath)
+      return `data:image/png;base64,${data.toString("base64")}`
+    } catch (error) {
+      console.error("Error reading image:", error)
+      throw error
+    }
+  }
+  // Processing methods
+  private async processScreenshots(): Promise<void> {
+    if (!this.mainWindow) return
+
+    if (this.view === "queue") {
+      if (this.screenshotQueue.length === 0) {
+        this.mainWindow.webContents.send(this.PROCESSING_EVENTS.NO_SCREENSHOTS)
         return
       }
-      mainWindow.webContents.send(PROCESSING_EVENTS.START)
+
+      this.mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
       try {
         const screenshots = await Promise.all(
-          [...screenshotQueue, ...extraScreenshotQueue].map(async (path) => ({
+          this.screenshotQueue.map(async (path) => ({
             path,
-            preview: await getImagePreview(path)
+            preview: await this.getImagePreview(path)
           }))
         )
 
-        const result = await processScreenshotsHelper(screenshots)
+        const result = await this.processScreenshotsHelper(screenshots)
 
         if (result.success) {
           console.log("Processing success:", result.data)
-          mainWindow.webContents.send(PROCESSING_EVENTS.SUCCESS, result.data)
+          this.mainWindow.webContents.send(
+            this.PROCESSING_EVENTS.SUCCESS,
+            result.data
+          )
         } else {
-          mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, result.error)
+          this.mainWindow.webContents.send(
+            this.PROCESSING_EVENTS.ERROR,
+            result.error
+          )
         }
       } catch (error) {
         console.error("Processing error:", error)
-        mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, error.message)
+        this.mainWindow.webContents.send(
+          this.PROCESSING_EVENTS.ERROR,
+          error.message
+        )
+      }
+    } else {
+      //if view is solutions
+      if (this.extraScreenshotQueue.length === 0) {
+        console.log("No extra screenshots to process")
+        this.mainWindow.webContents.send(this.PROCESSING_EVENTS.NO_SCREENSHOTS)
+        return
+      }
+      this.mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
+      try {
+        const screenshots = await Promise.all(
+          [...this.screenshotQueue, ...this.extraScreenshotQueue].map(
+            async (path) => ({
+              path,
+              preview: await this.getImagePreview(path)
+            })
+          )
+        )
+
+        const result = await this.processExtraScreenshotsHelper(screenshots)
+
+        if (result.success) {
+          console.log("Processing success:", result.data)
+          this.mainWindow.webContents.send(
+            this.PROCESSING_EVENTS.SUCCESS,
+            result.data
+          )
+        } else {
+          this.mainWindow.webContents.send(
+            this.PROCESSING_EVENTS.ERROR,
+            result.error
+          )
+        }
+      } catch (error) {
+        console.error("Processing error:", error)
+        this.mainWindow.webContents.send(
+          this.PROCESSING_EVENTS.ERROR,
+          error.message
+        )
       }
     }
   }
-}
-//helper function to process screenshots
-async function processScreenshotsHelper(
-  screenshots: Array<{ path: string }>,
-  problem_statement: string | null = null
-) {
-  try {
-    const formData = new FormData()
 
-    screenshots.forEach((screenshot) => {
-      formData.append("images", fs.createReadStream(screenshot.path))
-    })
+  private async processScreenshotsHelper(screenshots: Array<{ path: string }>) {
+    try {
+      const formData = new FormData()
 
-    let response
-    if (view == "queue") {
+      screenshots.forEach((screenshot) => {
+        formData.append("images", fs.createReadStream(screenshot.path))
+      })
+
+      let response
       try {
-        view = "solutions"
+        this.view = "solutions"
         response = await axios.post(
           "http://0.0.0.0:8000/extract_problem",
           formData,
           {
             headers: {
-              ...formData.getHeaders() // This gets the correct content-type with boundary
+              ...formData.getHeaders()
             },
             timeout: 300000,
             maxContentLength: Infinity,
             maxBodyLength: Infinity
           }
         )
+        this.problemInfo = {
+          problem_statement: response.data.problem_statement,
+          input_format: response.data.input_format,
+          output_format: response.data.output_format,
+          constraints: response.data.constraints,
+          test_cases: response.data.test_cases
+        }
       } catch (error: any) {
-        view = "queue"
-        mainWindow.webContents.send(
-          PROCESSING_EVENTS.ERROR,
-          "Error processing screenshots"
-        )
+        this.view = "queue"
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send(
+            this.PROCESSING_EVENTS.ERROR,
+            "Error processing screenshots"
+          )
+        }
       }
-    } else {
-      formData.append("problem_statement", JSON.stringify(problem_statement))
-      try {
-        response = await axios.post(
-          "http://0.0.0.0:8000/debug_solutions",
-          formData,
-          {
-            headers: {
-              ...formData.getHeaders() // This gets the correct content-type with boundary
-            },
-            timeout: 300000,
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity
-          }
-        )
-      } catch (error: any) {
-        mainWindow.webContents.send(
-          PROCESSING_EVENTS.ERROR,
-          "Error processing additional context screenshots"
-        )
-      }
-    }
-    if (view == "queue") {
-      view = "solutions"
-    }
 
-    return { success: true, data: response.data }
-  } catch (error) {
-    console.error("Processing error:", error)
-    return { success: false, error: error.message }
+      this.view = "solutions"
+
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error("Processing error:", error)
+      return { success: false, error: error.message }
+    }
   }
-}
-
-async function deleteScreenshot(path: string) {
-  try {
-    await fs.promises.unlink(path) // Delete the file at the given path
-    //delete it from the screenshottsqueue
-    if (view == "queue") {
-      screenshotQueue = screenshotQueue.filter((filePath) => filePath !== path)
-    } else {
-      extraScreenshotQueue = extraScreenshotQueue.filter(
-        (filePath) => filePath !== path
-      )
-    }
-
-    return { success: true }
-  } catch (error) {
-    console.error("Error deleting file:", error)
-    return { success: false, error: error.message }
-  }
-}
-// When the app is ready, create the window and set up IPC and shortcuts
-app.whenReady().then(() => {
-  createWindow()
-
-  // OS - PERMISSION FUNCTION HANDLERS
-  ipcMain.handle("process-screenshots", async (event, screenshots) => {
-    return processScreenshotsHelper(screenshots)
-  })
-
-  ipcMain.handle("delete-screenshot", async (event, path) => {
-    const deletedScreenshot = await deleteScreenshot(path)
-    return deletedScreenshot
-  })
-
-  ipcMain.handle("take-screenshot", async () => {
-    const screenshotPath = await takeScreenshot()
-    return screenshotPath
-  })
-
-  ipcMain.handle("get-screenshots", async () => {
-    console.log({ view })
+  private async processExtraScreenshotsHelper(
+    screenshots: Array<{ path: string }>
+  ) {
     try {
-      let previews = []
-      if (view == "queue") {
-        previews = await Promise.all(
-          screenshotQueue.map(async (path) => ({
-            path,
-            preview: await getImagePreview(path)
-          }))
+      const formData = new FormData()
+
+      // Add images first
+      screenshots.forEach((screenshot) => {
+        formData.append("images", fs.createReadStream(screenshot.path))
+      })
+
+      if (!this.problemInfo) {
+        throw new Error("No problem info available")
+      }
+
+      // Just log the problem info before sending
+
+      formData.append("problem_info", JSON.stringify(this.problemInfo))
+
+      const response = await axios.post(
+        "http://0.0.0.0:8000/debug_solutions",
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders()
+          },
+          timeout: 300000,
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity
+        }
+      )
+
+      if (!response || !response.data) {
+        throw new Error("No response data received")
+      }
+
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error("Processing error:", error)
+      if (axios.isAxiosError(error)) {
+        console.error("Response status:", error.response?.status)
+        console.error("Response error data:", error.response?.data)
+      }
+      return { success: false, error: error.message }
+    }
+  }
+
+  public async deleteScreenshot(path: string) {
+    try {
+      await fs.promises.unlink(path)
+      if (this.view === "queue") {
+        this.screenshotQueue = this.screenshotQueue.filter(
+          (filePath) => filePath !== path
         )
       } else {
-        previews = await Promise.all(
-          extraScreenshotQueue.map(async (path) => ({
-            path,
-            preview: await getImagePreview(path)
-          }))
+        this.extraScreenshotQueue = this.extraScreenshotQueue.filter(
+          (filePath) => filePath !== path
         )
       }
-      previews.forEach((preview: any) => console.log(preview.path))
-      return previews
+      return { success: true }
     } catch (error) {
-      console.error("Error getting screenshots:", error)
-      throw error
+      console.error("Error deleting file:", error)
+      return { success: false, error: error.message }
     }
-  })
-
-  ipcMain.handle("toggle-window", async () => {
-    toggleMainWindow()
-  })
-
-  // GLOBAL SHORTCUTS
-  globalShortcut.register("CommandOrControl+H", async () => {
-    if (mainWindow) {
-      console.log("Taking screenshot...")
-      try {
-        const screenshotPath = await takeScreenshot()
-        const preview = await getImagePreview(screenshotPath)
-        mainWindow.webContents.send("screenshot-taken", {
-          path: screenshotPath,
-          preview
-        })
-      } catch (error) {
-        console.error("Error capturing screenshot:", error)
-      }
-    }
-  })
-
-  globalShortcut.register("CommandOrControl+Enter", async () => {
-    processScreenshots()
-  })
-
-  globalShortcut.register("CommandOrControl+B", () => {
-    toggleMainWindow()
-    // If window exists and we're showing it, bring it to front
-    if (mainWindow && !isWindowVisible) {
-      // Force the window to the front on macOS
-      if (process.platform === "darwin") {
-        mainWindow.setAlwaysOnTop(true, "normal")
-        // "normal" | "floating" | "torn-off-menu" | "modal-panel" | "main-menu" | "status" | "pop-up-menu" | "screen-saver" | "dock"
-        // Reset alwaysOnTop after a brief delay to allow other windows to go above if needed
-        setTimeout(() => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setAlwaysOnTop(true, "floating")
-          }
-        }, 100)
-      }
-    }
-  })
-
-  // 'activate' event listener inside 'whenReady' to prevent multiple windows
-  app.on("activate", () => {
-    if (mainWindow === null) {
-      createWindow()
-    } else if (!isWindowVisible) {
-      toggleMainWindow()
-    }
-  })
-})
-
-// Quit when all windows are closed, except on macOS
-app.on("window-all-closed", () => {
-  isWindowVisible = true
-  windowPosition = null
-  windowSize = null
-
-  if (process.platform !== "darwin") {
-    app.quit()
   }
-})
 
-// Unregister global shortcuts when the app is about to quit
-app.on("will-quit", () => {
-  globalShortcut.unregisterAll()
-})
+  // IPC Handlers setup
+  private initializeIpcHandlers(): void {
+    ipcMain.handle("update-content-height", async (event, height: number) => {
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        const [width] = this.mainWindow.getSize()
+        this.mainWindow.setSize(width, Math.ceil(height))
+      }
+    })
 
-app.dock?.hide() // Hide dock icon (optional)
-app.commandLine.appendSwitch("disable-background-timer-throttling")
+    ipcMain.handle("delete-screenshot", async (event, path) => {
+      return this.deleteScreenshot(path)
+    })
+
+    ipcMain.handle("take-screenshot", async () => {
+      return this.takeScreenshot()
+    })
+
+    ipcMain.handle("get-screenshots", async () => {
+      console.log({
+        view: this.view,
+        screenshotsQueue: this.screenshotQueue,
+        extraScreenshotQueue: this.extraScreenshotQueue
+      })
+      try {
+        let previews = []
+        if (this.view === "queue") {
+          previews = await Promise.all(
+            this.screenshotQueue.map(async (path) => ({
+              path,
+              preview: await this.getImagePreview(path)
+            }))
+          )
+        } else {
+          previews = await Promise.all(
+            this.extraScreenshotQueue.map(async (path) => ({
+              path,
+              preview: await this.getImagePreview(path)
+            }))
+          )
+        }
+        previews.forEach((preview: any) => console.log(preview.path))
+        return previews
+      } catch (error) {
+        console.error("Error getting screenshots:", error)
+        throw error
+      }
+    })
+
+    ipcMain.handle("toggle-window", async () => {
+      this.toggleMainWindow()
+    })
+  }
+  // Global shortcuts setup
+  public setupGlobalShortcuts(): void {
+    globalShortcut.register("CommandOrControl+H", async () => {
+      if (this.mainWindow) {
+        console.log("Taking screenshot...")
+        try {
+          const screenshotPath = await this.takeScreenshot()
+          const preview = await this.getImagePreview(screenshotPath)
+          this.mainWindow.webContents.send("screenshot-taken", {
+            path: screenshotPath,
+            preview
+          })
+        } catch (error) {
+          console.error("Error capturing screenshot:", error)
+        }
+      }
+    })
+
+    globalShortcut.register("CommandOrControl+Enter", async () => {
+      await this.processScreenshots()
+    })
+
+    globalShortcut.register("CommandOrControl+B", () => {
+      this.toggleMainWindow()
+      // If window exists and we're showing it, bring it to front
+      if (this.mainWindow && !this.isWindowVisible) {
+        // Force the window to the front on macOS
+        if (process.platform === "darwin") {
+          this.mainWindow.setAlwaysOnTop(true, "normal")
+          // Reset alwaysOnTop after a brief delay
+          setTimeout(() => {
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+              this.mainWindow.setAlwaysOnTop(true, "floating")
+            }
+          }, 100)
+        }
+      }
+    })
+  }
+}
+
+// Application initialization
+async function initializeApp() {
+  const appState = AppState.getInstance()
+
+  app.whenReady().then(() => {
+    appState.createWindow()
+    appState.setupGlobalShortcuts()
+
+    app.on("activate", () => {
+      if (!appState.getMainWindow()) {
+        appState.createWindow()
+      } else if (!appState.isVisible()) {
+        appState.toggleMainWindow()
+      }
+    })
+  })
+
+  // Quit when all windows are closed, except on macOS
+  app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") {
+      app.quit()
+    }
+  })
+
+  // Unregister shortcuts when quitting
+  app.on("will-quit", () => {
+    globalShortcut.unregisterAll()
+  })
+
+  app.dock?.hide() // Hide dock icon (optional)
+  app.commandLine.appendSwitch("disable-background-timer-throttling")
+}
+
+// Start the application
+initializeApp().catch(console.error)

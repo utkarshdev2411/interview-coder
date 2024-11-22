@@ -182,8 +182,14 @@ const Solutions: React.FC = () => {
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
       window.electronAPI.onProcessingStart(() => {
+        //everytime processing starts, we'll reset stuff ot this
         setSolutionData(null)
         setThoughtsData(null)
+      }),
+      window.electronAPI.onProcessingExtraSuccess((data) => {
+        console.log({ data })
+        // queryClient.setQueryData(["problem_statement"], data)
+        // queryClient.invalidateQueries(["problem_statement"])
       }),
       window.electronAPI.onProcessingError((error: string) => {
         showToast(
@@ -191,6 +197,9 @@ const Solutions: React.FC = () => {
           "There was an error processing your extra screenshots.",
           "error"
         )
+        //here, processing error means a processing error for the EXTRA screenshots. this means that the solutions and thoughts should be reset to what they previously were
+        setSolutionData(queryClient.getQueryData(["solution"]) || null)
+        setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
         console.error("Processing error:", error)
       }),
       window.electronAPI.onProcessingNoScreenshots(() => {
