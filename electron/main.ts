@@ -104,7 +104,6 @@ class AppState {
       alwaysOnTop: true,
       frame: false,
       transparent: true,
-      visualEffectState: "active" as const,
       fullscreenable: false,
       hasShadow: false,
       backgroundColor: "#00000000",
@@ -119,8 +118,14 @@ class AppState {
       this.mainWindow.setAlwaysOnTop(true, "floating")
     }
 
-    this.mainWindow.loadURL("http://localhost:5173")
+    const isDev = process.env.NODE_ENV === "development"
+    const startUrl = isDev
+      ? "http://localhost:5173"
+      : `file://${path.join(__dirname, "../dist/index.html")}`
 
+    this.mainWindow.loadURL(startUrl).catch((err) => {
+      console.error("Failed to load URL:", err)
+    })
     const bounds = this.mainWindow.getBounds()
     this.windowPosition = { x: bounds.x, y: bounds.y }
     this.windowSize = { width: bounds.width, height: bounds.height }
@@ -214,18 +219,23 @@ class AppState {
     // Clear screenshotQueue
     this.screenshotQueue.forEach((screenshotPath) => {
       fs.unlink(screenshotPath, (err) => {
-        if (err) console.error(`Error deleting screenshot at ${screenshotPath}:`, err);
-      });
-    });
-    this.screenshotQueue = [];
+        if (err)
+          console.error(`Error deleting screenshot at ${screenshotPath}:`, err)
+      })
+    })
+    this.screenshotQueue = []
 
     // Clear extraScreenshotQueue
     this.extraScreenshotQueue.forEach((screenshotPath) => {
       fs.unlink(screenshotPath, (err) => {
-        if (err) console.error(`Error deleting extra screenshot at ${screenshotPath}:`, err);
-      });
-    });
-    this.extraScreenshotQueue = [];
+        if (err)
+          console.error(
+            `Error deleting extra screenshot at ${screenshotPath}:`,
+            err
+          )
+      })
+    })
+    this.extraScreenshotQueue = []
   }
 
   // Screenshot management methods
@@ -531,14 +541,14 @@ class AppState {
 
     ipcMain.handle("reset-queues", async () => {
       try {
-        AppState.getInstance().clearQueues();
-        console.log("Screenshot queues have been cleared.");
-        return { success: true };
+        AppState.getInstance().clearQueues()
+        console.log("Screenshot queues have been cleared.")
+        return { success: true }
       } catch (error: any) {
-        console.error("Error resetting queues:", error);
-        return { success: false, error: error.message };
+        console.error("Error resetting queues:", error)
+        return { success: false, error: error.message }
       }
-    });
+    })
   }
   // Global shortcuts setup
   public setupGlobalShortcuts(): void {
@@ -563,21 +573,23 @@ class AppState {
     })
 
     globalShortcut.register("CommandOrControl+R", () => {
-      console.log("Resetting screenshot queues and switching view to 'queue'...");
-  
+      console.log(
+        "Resetting screenshot queues and switching view to 'queue'..."
+      )
+
       // Clear both screenshot queues
-      this.clearQueues();
-  
-      console.log("Cleared queues.");
-  
+      this.clearQueues()
+
+      console.log("Cleared queues.")
+
       // **Update the view state to 'queue'**
-      this.view = "queue";
-  
+      this.view = "queue"
+
       // Notify renderer process to switch view to 'queue'
       if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-        this.mainWindow.webContents.send("reset-view");
+        this.mainWindow.webContents.send("reset-view")
       }
-    });
+    })
 
     globalShortcut.register("CommandOrControl+B", () => {
       this.toggleMainWindow()
@@ -595,8 +607,6 @@ class AppState {
         }
       }
     })
-
-    
   }
 }
 

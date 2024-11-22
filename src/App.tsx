@@ -6,7 +6,6 @@ import Solutions from "./_pages/Solutions"
 import { QueryClient, QueryClientProvider } from "react-query"
 import axios from "axios"
 
-
 declare global {
   interface Window {
     electronAPI: {
@@ -93,6 +92,13 @@ const App: React.FC = () => {
       window.electronAPI.onProcessingStart(() => {
         setView("solutions")
         console.log("starting processing")
+      }),
+      window.electronAPI.onResetView(() => {
+        queryClient.invalidateQueries([
+          "solution",
+          "problem_statement",
+          "thoughts"
+        ])
       }),
       window.electronAPI.onProcessingSuccess(async (data) => {
         if (view == "queue") {

@@ -1,4 +1,4 @@
-import { ipcMain, dialog } from "electron"
+import { ipcMain } from "electron"
 import type { SolutionsResponse } from "../types/solutions"
 import screenshot from "screenshot-desktop"
 import axios from "axios"

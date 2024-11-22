@@ -1,5 +1,5 @@
 {
-  "name": "electron-react-app",
+  "name": "interview-coder",
   "version": "1.0.0",
   "main": "./dist-electron/main.js",
   "scripts": {
@@ -13,7 +13,8 @@
     "watch": "tsc -p electron/tsconfig.json --watch"
   },
   "build": {
-    "appId": "com.electron.react-app",
+    "appId": "com.interview-coder",
+    "productName": "Interview Coder",
     "files": [
       "dist/**/*",
       "dist-electron/**/*"
@@ -23,13 +24,35 @@
     },
     "mac": {
       "category": "public.app-category.utilities"
-    }
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "assets/icons/win/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icons/png"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ibttf",
+        "repo": "interview-coder-frontend"
+      }
+    ]
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@types/color": "^4.2.0",
     "@types/electron": "^1.4.38",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
