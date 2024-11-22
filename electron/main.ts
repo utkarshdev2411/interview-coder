@@ -35,6 +35,9 @@ if (!fs.existsSync(screenshotDir)) {
 let screenshotQueue: string[] = []
 const MAX_SCREENSHOTS = 5
 
+//additional context queue logic
+let additionalContextQueue: string[] = []
+
 ipcMain.handle("update-content-height", async (event, height: number) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     const [width] = mainWindow.getSize()
@@ -103,50 +106,7 @@ function createWindow() {
   })
 }
 
-//LOGIC FOR CMD+B
-function toggleMainWindow() {
-  if (!mainWindow) {
-    createWindow()
-    return
-  }
-
-  if (mainWindow.isDestroyed()) {
-    createWindow()
-    return
-  }
-
-  if (isWindowVisible) {
-    // Store current position and size before hiding
-    const bounds = mainWindow.getBounds()
-    windowPosition = { x: bounds.x, y: bounds.y }
-    windowSize = { width: bounds.width, height: bounds.height }
-    mainWindow.hide()
-  } else {
-    // Get the currently focused window before showing
-    const focusedWindow = require("electron").BrowserWindow.getFocusedWindow()
-
-    // Restore window at the last position and size
-    if (windowPosition && windowSize) {
-      mainWindow.setBounds({
-        x: windowPosition.x,
-        y: windowPosition.y,
-        width: windowSize.width,
-        height: windowSize.height
-      })
-    }
-
-    // Show window without activating it
-    mainWindow.showInactive()
-
-    // If there was a focused window, restore focus to it
-    if (focusedWindow && !focusedWindow.isDestroyed()) {
-      focusedWindow.focus()
-    }
-  }
-
-  isWindowVisible = !isWindowVisible
-}
-
+//LOGIC FOR CMD+B, TOGGLING VISIBILITY
 function hideMainWindow() {
   if (!mainWindow) {
     createWindow()
@@ -158,13 +118,12 @@ function hideMainWindow() {
     return
   }
 
-  if (isWindowVisible) {
-    // Store current position and size before hiding
-    const bounds = mainWindow.getBounds()
-    windowPosition = { x: bounds.x, y: bounds.y }
-    windowSize = { width: bounds.width, height: bounds.height }
-    mainWindow.hide()
-  }
+  // Store current position and size before hiding
+  const bounds = mainWindow.getBounds()
+  windowPosition = { x: bounds.x, y: bounds.y }
+  windowSize = { width: bounds.width, height: bounds.height }
+  mainWindow.hide()
+
   isWindowVisible = false
 }
 
@@ -179,7 +138,9 @@ function showMainWindow() {
     return
   }
 
-  // Restore window at the last position and size
+  // Get the currently focused window before showing
+  const focusedWindow = require("electron").BrowserWindow.getFocusedWindow()
+
   if (windowPosition && windowSize) {
     mainWindow.setBounds({
       x: windowPosition.x,
@@ -188,10 +149,24 @@ function showMainWindow() {
       height: windowSize.height
     })
   }
-  mainWindow.show()
+
+  mainWindow.showInactive()
+
+  // If there was a focused window, restore focus to it
+  if (focusedWindow && !focusedWindow.isDestroyed()) {
+    focusedWindow.focus()
+  }
+
+  isWindowVisible = true
 }
 
-
+function toggleMainWindow() {
+  if (isWindowVisible) {
+    hideMainWindow()
+  } else {
+    showMainWindow()
+  }
+}
 // LOGIC FOR CMD+H
 async function captureScreenshot(): Promise<string> {
   if (!mainWindow) throw new Error("No main window available")
@@ -267,6 +242,18 @@ async function processScreenshotsHelper(screenshots: Array<{ path: string }>) {
   }
 }
 
+async function deleteScreenshot(path: string) {
+  try {
+    await fs.promises.unlink(path) // Delete the file at the given path
+    //delete it from the screenshottsqueue
+    screenshotQueue = screenshotQueue.filter((filePath) => filePath !== path)
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error deleting file:", error)
+    return { success: false, error: error.message }
+  }
+}
 // When the app is ready, create the window and set up IPC and shortcuts
 app.whenReady().then(() => {
   createWindow()
@@ -277,27 +264,13 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle("delete-screenshot", async (event, path) => {
-    try {
-      await fs.promises.unlink(path) // Delete the file at the given path
-      //delete it from the screenshottsqueue
-      screenshotQueue = screenshotQueue.filter((filePath) => filePath !== path)
-
-      return { success: true }
-    } catch (error) {
-      console.error("Error deleting file:", error)
-      return { success: false, error: error.message }
-    }
+    const deletedScreenshot = await deleteScreenshot(path)
+    return deletedScreenshot
   })
 
   ipcMain.handle("take-screenshot", async () => {
-    try {
-      const screenshotPath = await captureScreenshot()
-      const preview = await getImagePreview(screenshotPath)
-      return { path: screenshotPath, preview }
-    } catch (error) {
-      console.error("Error capturing screenshot:", error)
-      throw error
-    }
+    const screenshotPath = await captureScreenshot()
+    return screenshotPath
   })
 
   ipcMain.handle("get-screenshots", async () => {

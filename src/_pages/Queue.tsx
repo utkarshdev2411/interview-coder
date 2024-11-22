@@ -59,6 +59,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
 
       if (response.success) {
         refetch() // Refetch screenshots instead of managing state directly
+        showToast("Success", "Screenshot deleted successfully", "success")
       } else {
         console.error("Failed to delete screenshot:", response.error)
         showToast("Error", "Failed to delete the screenshot file", "error")
