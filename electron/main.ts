@@ -33,7 +33,7 @@ if (!fs.existsSync(screenshotDir)) {
 
 // Screenshot queue logic
 let screenshotQueue: string[] = []
-const MAX_SCREENSHOTS = 3
+const MAX_SCREENSHOTS = 5
 
 ipcMain.handle("update-content-height", async (event, height: number) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -200,7 +200,7 @@ async function captureScreenshot(): Promise<string> {
     console.log("You can't take a screenshot in the solutions view")
     throw new Error("You can't take a screenshot in the solutions view")
   }
-  hideMainWindow()
+  await hideMainWindow()
   const screenshotPath = path.join(screenshotDir, `${uuidv4()}.png`)
   await screenshot({ filename: screenshotPath })
 
@@ -216,7 +216,7 @@ async function captureScreenshot(): Promise<string> {
       }
     }
   }
-  showMainWindow()
+  await showMainWindow()
   return screenshotPath
 }
 

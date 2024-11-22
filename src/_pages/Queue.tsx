@@ -148,7 +148,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
                     ⌘ + H
                   </kbd>
                   <span className="ml-2 text-xs">
-                    Take screenshot (keeps latest 3)
+                    Take screenshot (keeps latest 5)
                   </span>
                 </div>
                 <div className="flex items-center">
