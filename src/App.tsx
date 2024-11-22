@@ -6,6 +6,7 @@ import Solutions from "./_pages/Solutions"
 import { QueryClient, QueryClientProvider } from "react-query"
 import axios from "axios"
 
+
 declare global {
   interface Window {
     electronAPI: {
@@ -25,6 +26,7 @@ declare global {
       onProcessingError: (callback: (error: string) => void) => () => void
       onProcessingNoScreenshots: (callback: () => void) => () => void
       updateContentHeight: (height: number) => Promise<void>
+      onResetView: (callback: () => void) => () => void
     }
   }
 }
@@ -36,6 +38,20 @@ const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Effect for height monitoring
+
+  useEffect(() => {
+    const cleanup = window.electronAPI.onResetView(() => {
+      console.log("Received 'reset-view' message from main process.")
+      setView("queue")
+      console.log("View reset to 'queue' via Command+R shortcut.")
+      queryClient.invalidateQueries(["screenshots"])
+    })
+
+    return () => {
+      cleanup()
+    }
+  }, [])
+
   useEffect(() => {
     if (!containerRef.current) return
 

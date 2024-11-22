@@ -210,6 +210,24 @@ class AppState {
     }
   }
 
+  public clearQueues(): void {
+    // Clear screenshotQueue
+    this.screenshotQueue.forEach((screenshotPath) => {
+      fs.unlink(screenshotPath, (err) => {
+        if (err) console.error(`Error deleting screenshot at ${screenshotPath}:`, err);
+      });
+    });
+    this.screenshotQueue = [];
+
+    // Clear extraScreenshotQueue
+    this.extraScreenshotQueue.forEach((screenshotPath) => {
+      fs.unlink(screenshotPath, (err) => {
+        if (err) console.error(`Error deleting extra screenshot at ${screenshotPath}:`, err);
+      });
+    });
+    this.extraScreenshotQueue = [];
+  }
+
   // Screenshot management methods
   private async takeScreenshot(): Promise<string> {
     if (!this.mainWindow) throw new Error("No main window available")
@@ -510,6 +528,17 @@ class AppState {
     ipcMain.handle("toggle-window", async () => {
       this.toggleMainWindow()
     })
+
+    ipcMain.handle("reset-queues", async () => {
+      try {
+        AppState.getInstance().clearQueues();
+        console.log("Screenshot queues have been cleared.");
+        return { success: true };
+      } catch (error: any) {
+        console.error("Error resetting queues:", error);
+        return { success: false, error: error.message };
+      }
+    });
   }
   // Global shortcuts setup
   public setupGlobalShortcuts(): void {
@@ -533,6 +562,23 @@ class AppState {
       await this.processScreenshots()
     })
 
+    globalShortcut.register("CommandOrControl+R", () => {
+      console.log("Resetting screenshot queues and switching view to 'queue'...");
+  
+      // Clear both screenshot queues
+      this.clearQueues();
+  
+      console.log("Cleared queues.");
+  
+      // **Update the view state to 'queue'**
+      this.view = "queue";
+  
+      // Notify renderer process to switch view to 'queue'
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send("reset-view");
+      }
+    });
+
     globalShortcut.register("CommandOrControl+B", () => {
       this.toggleMainWindow()
       // If window exists and we're showing it, bring it to front
@@ -549,6 +595,8 @@ class AppState {
         }
       }
     })
+
+    
   }
 }
 

@@ -4,6 +4,7 @@ import { contextBridge, ipcRenderer } from "electron"
 interface ElectronAPI {
   takeScreenshot: () => Promise<string>
   onSolutionsReady: (callback: (solutions: string) => void) => () => void
+  onResetView: (callback: () => void) => () => void
 }
 
 const PROCESSING_EVENTS = {
@@ -77,5 +78,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => {
       ipcRenderer.removeListener("solutions-ready", subscription)
     }
-  }
+  },
+  onResetView: (callback: () => void) => { 
+    const subscription = () => callback();
+    ipcRenderer.on("reset-view", subscription);
+    return () => {
+      ipcRenderer.removeListener("reset-view", subscription);
+    };
+  },
 } as ElectronAPI)
