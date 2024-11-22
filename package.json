@@ -28,7 +28,8 @@
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "icon": "assets/icons/mac/icon.icns"
     },
     "win": {
       "target": [
@@ -42,7 +43,7 @@
         "AppImage",
         "deb"
       ],
-      "icon": "assets/icons/png"
+      "icon": "assets/icons/png/icon-256x256.png"
     },
     "publish": [
       {
