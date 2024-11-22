@@ -76,35 +76,44 @@ const App: React.FC = () => {
     const cleanupFunctions = [
       window.electronAPI.onProcessingStart(() => {
         setView("solutions")
+        console.log("starting processing")
       }),
       window.electronAPI.onProcessingSuccess(async (data) => {
-        queryClient.setQueryData(["problem_statement"], data)
-        queryClient.invalidateQueries(["problem_statement"])
-        try {
-          // Step 2: Generate solutions
-          console.log("Trying to generate solutions")
-          const solutionsResponse = await axios.post(
-            "http://0.0.0.0:8000/generate_solutions",
-            { problem_info: data },
-            {
-              timeout: 300000
-            }
-          )
-          console.log("Solutions response:", solutionsResponse.data)
+        if (view == "queue") {
+          console.log("the view is queue")
+          queryClient.setQueryData(["problem_statement"], data)
+          queryClient.invalidateQueries(["problem_statement"])
+          try {
+            // Step 2: Generate solutions
+            console.log("Trying to generate solutions")
+            const solutionsResponse = await axios.post(
+              "http://0.0.0.0:8000/generate_solutions",
+              { problem_info: data },
+              {
+                timeout: 300000
+              }
+            )
+            // Extract solution code and thoughts from the new schema
+            console.log({ solutionsResponse })
+            const solutionCode = solutionsResponse.data.solution.code
+            const thoughtProcess = solutionsResponse.data.solution.thoughts
 
-          // Extract solution code and thoughts from the new schema
-          const solutionCode = solutionsResponse.data.solution.code
-          const thoughtProcess = {
-            thoughts: solutionsResponse.data.solution.thoughts,
-            description: solutionsResponse.data.solution.description
+            // Store both code and thoughts in React Query
+            queryClient.setQueryData(["solution"], solutionCode)
+            queryClient.setQueryData(["thoughts"], thoughtProcess)
+          } catch (error) {
+            console.log("error generating solutions")
           }
-
-          // Store both code and thoughts in React Query
-          queryClient.setQueryData(["solution"], solutionCode)
-          queryClient.setQueryData(["thoughts"], thoughtProcess)
-        } catch (error) {
-          console.log("error generating solutions")
         }
+      }),
+      window.electronAPI.onProcessingExtraSuccess((data) => {
+        console.log("solutions data", { data })
+        queryClient.invalidateQueries(["solution"])
+        queryClient.invalidateQueries(["thoughts"])
+        const solutionCode = data.solution.code
+        const thoughtProcess = data.solution.thoughts
+        queryClient.setQueryData(["solution"], solutionCode)
+        queryClient.setQueryData(["thoughts"], thoughtProcess)
       })
     ]
     return () => cleanupFunctions.forEach((cleanup) => cleanup())

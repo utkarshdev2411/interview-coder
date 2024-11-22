@@ -112,7 +112,6 @@ class AppState {
     }
 
     this.mainWindow = new BrowserWindow(windowSettings)
-
     if (process.platform === "darwin") {
       this.mainWindow.setVisibleOnAllWorkspaces(true, {
         visibleOnFullScreen: true
@@ -281,7 +280,10 @@ class AppState {
             preview: await this.getImagePreview(path)
           }))
         )
-
+        console.log("regular screenshots")
+        screenshots.forEach((screenshot: any) => {
+          console.log(screenshot.path)
+        })
         const result = await this.processScreenshotsHelper(screenshots)
 
         if (result.success) {
@@ -324,9 +326,9 @@ class AppState {
         const result = await this.processExtraScreenshotsHelper(screenshots)
 
         if (result.success) {
-          console.log("Processing success:", result.data)
+          console.log("Processing extra screenshots success:", result.data)
           this.mainWindow.webContents.send(
-            this.PROCESSING_EVENTS.SUCCESS,
+            this.PROCESSING_EVENTS.EXTRA_SUCCESS,
             result.data
           )
         } else {
@@ -478,9 +480,7 @@ class AppState {
 
     ipcMain.handle("get-screenshots", async () => {
       console.log({
-        view: this.view,
-        screenshotsQueue: this.screenshotQueue,
-        extraScreenshotQueue: this.extraScreenshotQueue
+        view: this.view
       })
       try {
         let previews = []

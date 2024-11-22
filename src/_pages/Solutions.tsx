@@ -31,10 +31,6 @@ interface problemStatementData {
   difficulty: string
 }
 
-interface ThoughtsData {
-  thoughts: string[]
-}
-
 // Create an array of widths that look natural for text
 const naturalWidths = [
   "w-[230px]", // Shorter sentence
@@ -118,7 +114,7 @@ const Solutions: React.FC = () => {
   const [problemStatementData, setProblemStatementData] =
     useState<problemStatementData | null>(null)
   const [solutionData, setSolutionData] = useState<string | null>(null)
-  const [thoughtsData, setThoughtsData] = useState<ThoughtsData | null>(null)
+  const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
 
   const [toastOpen, setToastOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<ToastMessage>({
@@ -186,11 +182,7 @@ const Solutions: React.FC = () => {
         setSolutionData(null)
         setThoughtsData(null)
       }),
-      window.electronAPI.onProcessingExtraSuccess((data) => {
-        console.log({ data })
-        // queryClient.setQueryData(["problem_statement"], data)
-        // queryClient.invalidateQueries(["problem_statement"])
-      }),
+
       window.electronAPI.onProcessingError((error: string) => {
         showToast(
           "Processing Failed",
@@ -337,7 +329,7 @@ const Solutions: React.FC = () => {
                 thoughtsData && (
                   <div className="space-y-3">
                     <div className="space-y-1">
-                      {thoughtsData.thoughts.map((thought, index) => (
+                      {thoughtsData.map((thought, index) => (
                         <div key={index} className="flex items-start gap-2">
                           <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
                           <div>{thought}</div>
