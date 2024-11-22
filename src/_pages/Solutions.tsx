@@ -1,6 +1,8 @@
 import { useQueryClient } from "react-query"
 import { useEffect, useState } from "react"
 import { CodeBlock, dracula } from "react-code-blocks"
+import ShortcutTooltip from "../components/Solutions/shortcut-tooltip"
+import SolutionsQueue from "../components/Solutions/SolutionsQueue"
 
 interface problemStatementData {
   problem_statement: string
@@ -136,79 +138,86 @@ const Solutions: React.FC = () => {
   }, [queryClient])
 
   return (
-    <div className="w-full text-sm text-black backdrop-blur-md bg-black/60 rounded-md">
-      <div className=" rounded-lg overflow-hidden ">
-        <div className="px-4 py-3 space-y-4">
-          {/* Problem Statement */}
-          <ContentSection
-            title="Problem Statement"
-            content={problemStatementData?.problem_statement}
-            isLoading={!problemStatementData}
-          />
-          {/* Thoughts */}
-          <ContentSection
-            title="Thoughts"
-            content={
-              thoughtsData && (
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    {thoughtsData.thoughts.map((thought, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
-                        <div>{thought}</div>
+    <div className="relative">
+      <SolutionsQueue />
+      {/* Main Content */}
+      <div className="w-full text-sm text-black backdrop-blur-md bg-black/60 rounded-md">
+        <div className="rounded-lg overflow-hidden">
+          <div className="px-4 py-3 space-y-4">
+            {/* Problem Statement */}
+            <ContentSection
+              title="Problem Statement"
+              content={problemStatementData?.problem_statement}
+              isLoading={!problemStatementData}
+            />
+            {/* Thoughts */}
+            <ContentSection
+              title="Thoughts"
+              content={
+                thoughtsData && (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      {thoughtsData.thoughts.map((thought, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
+                          <div>{thought}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
+              isLoading={!thoughtsData}
+            />
+            {/* Solution  */}
+            <SolutionSection
+              title="Solutions"
+              content={solutionData}
+              isLoading={!solutionData}
+            />
+
+            {/* Constraints */}
+            <div className="space-y-2">
+              <h2 className="text-[13px] font-medium text-white tracking-wide">
+                Constraints
+              </h2>
+              {!problemStatementData ? (
+                <div className="space-y-1.5">
+                  {Array(3)
+                    .fill(0)
+                    .map((_, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
+                        <SkeletonLine
+                          width={
+                            naturalWidths[Math.min(i, naturalWidths.length - 1)]
+                          }
+                        />
                       </div>
                     ))}
-                  </div>
                 </div>
-              )
-            }
-            isLoading={!thoughtsData}
-          />
-          {/* Solution  */}
-          <SolutionSection
-            title="Solutions"
-            content={solutionData}
-            isLoading={!solutionData}
-          />
-
-          {/* Constraints */}
-          <div className="space-y-2">
-            <h2 className="text-[13px] font-medium text-white tracking-wide">
-              Constraints
-            </h2>
-            {!problemStatementData ? (
-              <div className="space-y-1.5">
-                {Array(3)
-                  .fill(0)
-                  .map((_, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
-                      <SkeletonLine
-                        width={
-                          naturalWidths[Math.min(i, naturalWidths.length - 1)]
-                        }
-                      />
+              ) : (
+                <div className="space-y-1">
+                  {problemStatementData.constraints.map((constraint, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-2 text-[13px] leading-[1.4] text-gray-100"
+                    >
+                      <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
+                      <div className="max-w-[600px]">
+                        {constraint.description}
+                      </div>
                     </div>
                   ))}
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {problemStatementData.constraints.map((constraint, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-2 text-[13px] leading-[1.4] text-gray-100"
-                  >
-                    <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
-                    <div className="max-w-[600px]">
-                      {constraint.description}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Helper Navbar */}
+      <ShortcutTooltip />
     </div>
   )
 }

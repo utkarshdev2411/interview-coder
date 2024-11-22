@@ -59,7 +59,6 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
 
       if (response.success) {
         refetch() // Refetch screenshots instead of managing state directly
-        showToast("Success", "Screenshot deleted successfully", "success")
       } else {
         console.error("Failed to delete screenshot:", response.error)
         showToast("Error", "Failed to delete the screenshot file", "error")
@@ -140,7 +139,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
           />
 
           <div className="pt-2">
-            <p className="w-fit text-sm text-white backdrop-blur-md bg-black/30 rounded-lg p-2 flex flex-col gap-4">
+            <p className="w-fit text-sm text-white backdrop-blur-md bg-black/60 rounded-lg p-2 flex flex-col gap-4">
               {/* Improved visual hierarchy */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center">
