@@ -97,7 +97,7 @@ function createWindow() {
   })
   mainWindow.on("closed", () => {
     mainWindow = null
-    isWindowVisible = true
+    isWindowVisible = false
     windowPosition = null
     windowSize = null
   })
@@ -191,7 +191,6 @@ function showMainWindow() {
   mainWindow.show()
 }
 
-isWindowVisible = false
 
 // LOGIC FOR CMD+H
 async function captureScreenshot(): Promise<string> {
