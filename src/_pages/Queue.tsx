@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from "react"
 import { useQuery } from "react-query"
-import ScreenshotQueue from "../components/Queue"
+import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import {
   Toast,
   ToastTitle,
   ToastDescription,
-  ToastVariant
+  ToastVariant,
+  ToastMessage
 } from "../components/ui/toast"
-
-interface ToastMessage {
-  title: string
-  description: string
-  variant: ToastVariant
-}
+import QueueHelper from "../components/Queue/QueueHelper"
 
 interface QueueProps {
   setView: React.Dispatch<React.SetStateAction<"queue" | "solutions">>
@@ -65,11 +61,6 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
       }
     } catch (error) {
       console.error("Error deleting screenshot:", error)
-      showToast(
-        "Error",
-        "An unexpected error occurred while deleting the screenshot",
-        "error"
-      )
     }
   }
 
@@ -117,10 +108,10 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
       resizeObserver.disconnect()
       cleanupFunctions.forEach((cleanup) => cleanup())
     }
-  }, []) // No more dependency on toggle
+  }, []) // No more dependency on Toggle View
 
   return (
-    <div className="bg-transparent">
+    <div className={`bg-transparent w-fit`}>
       <div className="px-4 py-3">
         <Toast
           open={toastOpen}
@@ -132,38 +123,61 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
           <ToastDescription>{toastMessage.description}</ToastDescription>
         </Toast>
 
-        <div className="space-y-3">
+        <div className="space-y-3 w-fit">
           <ScreenshotQueue
             screenshots={screenshots}
             onDeleteScreenshot={handleDeleteScreenshot}
           />
-
-          <div className="pt-2">
-            <p className="w-fit text-sm text-white backdrop-blur-md bg-black/60 rounded-lg p-2 flex flex-col gap-4">
-              {/* Improved visual hierarchy */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center">
-                  <kbd className="bg-white/20 backdrop-blur-sm rounded-md text-xs text-white border border-white/20 px-2 py-1">
-                    ⌘ + H
-                  </kbd>
-                  <span className="ml-2 text-xs">
-                    Take screenshot (keeps latest 5)
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <kbd className="bg-white/20 backdrop-blur-sm rounded-md text-xs text-white border border-white/20 px-2 py-1">
-                    ⌘ + ↵
-                  </kbd>
-                  <span className="ml-2 text-xs">Get solutions</span>
-                </div>
-                <div className="flex items-center">
-                  <kbd className="bg-white/20 backdrop-blur-sm rounded-md text-xs text-white border border-white/20 px-2 py-1">
-                    ⌘ + B
-                  </kbd>
-                  <span className="ml-2 text-xs">Toggle visibility</span>
+          <div className="pt-2 w-fit pb-60">
+            <div className="text-xs text-white/90 backdrop-blur-md bg-black/60 rounded-lg py-2 px-4 flex items-center justify-center gap-4">
+              {/* Show/Hide */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] leading-none">Show/Hide</span>
+                <div className="flex gap-1">
+                  <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                    ⌘
+                  </button>
+                  <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                    B
+                  </button>
                 </div>
               </div>
-            </p>
+
+              {/* Screenshot */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] leading-none">
+                  {screenshots.length === 0
+                    ? "Take first screenshot"
+                    : "Screenshot (up to 5)"}
+                </span>
+                <div className="flex gap-1">
+                  <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                    ⌘
+                  </button>
+                  <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                    H
+                  </button>
+                </div>
+              </div>
+
+              {/* Re-solve/Debug - Conditional */}
+              {screenshots.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] leading-none">Solve</span>
+                  <div className="flex gap-1">
+                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                      ⌘
+                    </button>
+                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                      ↵
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="mx-2 h-4 w-px bg-white/20" />
+
+              <QueueHelper />
+            </div>
           </div>
         </div>
       </div>

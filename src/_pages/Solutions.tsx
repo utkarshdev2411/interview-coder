@@ -1,8 +1,15 @@
-import { useQueryClient } from "react-query"
+import { useQuery, useQueryClient } from "react-query"
 import { useEffect, useState } from "react"
 import { CodeBlock, dracula } from "react-code-blocks"
-import ShortcutTooltip from "../components/Solutions/shortcut-tooltip"
-import SolutionsQueue from "../components/Solutions/SolutionsQueue"
+import SolutionsHelper from "../components/Solutions/SolutionsHelper"
+import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
+import {
+  Toast,
+  ToastDescription,
+  ToastMessage,
+  ToastTitle,
+  ToastVariant
+} from "../components/ui/toast"
 
 interface problemStatementData {
   problem_statement: string
@@ -23,6 +30,7 @@ interface problemStatementData {
   validation_type: string
   difficulty: string
 }
+
 interface ThoughtsData {
   thoughts: string[]
 }
@@ -109,9 +117,96 @@ const Solutions: React.FC = () => {
   const queryClient = useQueryClient()
   const [problemStatementData, setProblemStatementData] =
     useState<problemStatementData | null>(null)
-
   const [solutionData, setSolutionData] = useState<string | null>(null)
   const [thoughtsData, setThoughtsData] = useState<ThoughtsData | null>(null)
+
+  const [toastOpen, setToastOpen] = useState(false)
+  const [toastMessage, setToastMessage] = useState<ToastMessage>({
+    title: "",
+    description: "",
+    variant: "neutral"
+  })
+
+  const { data: extraScreenshots = [], refetch } = useQuery({
+    queryKey: ["extras"],
+    queryFn: async () => {
+      try {
+        const existing = await window.electronAPI.getScreenshots()
+        return existing
+      } catch (error) {
+        console.error("Error loading extra screenshots:", error)
+        return []
+      }
+    }
+  })
+
+  const showToast = (
+    title: string,
+    description: string,
+    variant: ToastVariant
+  ) => {
+    setToastMessage({ title, description, variant })
+    setToastOpen(true)
+  }
+  const handleDeleteExtraScreenshot = async (index: number) => {
+    const screenshotToDelete = extraScreenshots[index]
+
+    try {
+      const response = await window.electronAPI.deleteScreenshot(
+        screenshotToDelete.path
+      )
+
+      if (response.success) {
+        refetch() // Refetch screenshots instead of managing state directly
+      } else {
+        console.error("Failed to delete extra screenshot:", response.error)
+      }
+    } catch (error) {
+      console.error("Error deleting extra screenshot:", error)
+    }
+  }
+
+  useEffect(() => {
+    // Height update logic
+    const updateHeight = () => {
+      const contentHeight = document.body.scrollHeight
+      window.electronAPI.updateContentHeight(contentHeight)
+    }
+
+    // Initialize resize observer
+    const resizeObserver = new ResizeObserver(updateHeight)
+    resizeObserver.observe(document.body)
+    updateHeight()
+
+    // Set up event listeners
+    const cleanupFunctions = [
+      window.electronAPI.onScreenshotTaken(() => refetch()),
+      window.electronAPI.onProcessingStart(() => {
+        setSolutionData(null)
+        setThoughtsData(null)
+      }),
+      window.electronAPI.onProcessingError((error: string) => {
+        showToast(
+          "Processing Failed",
+          "There was an error processing your extra screenshots.",
+          "error"
+        )
+        console.error("Processing error:", error)
+      }),
+      window.electronAPI.onProcessingNoScreenshots(() => {
+        showToast(
+          "No Screenshots",
+          "There are no extra screenshots to process.",
+          "neutral"
+        )
+      })
+    ]
+
+    return () => {
+      resizeObserver.disconnect()
+      cleanupFunctions.forEach((cleanup) => cleanup())
+    }
+  }, []) // No more dependency on Toggle View
 
   useEffect(() => {
     setProblemStatementData(
@@ -138,19 +233,95 @@ const Solutions: React.FC = () => {
   }, [queryClient])
 
   return (
-    <div className="relative">
-      <SolutionsQueue />
-      {/* Main Content */}
+    <div className="relative space-y-3">
+      <Toast
+        open={toastOpen}
+        onOpenChange={setToastOpen}
+        variant={toastMessage.variant}
+        duration={3000}
+      >
+        <ToastTitle>{toastMessage.title}</ToastTitle>
+        <ToastDescription>{toastMessage.description}</ToastDescription>
+      </Toast>
+      <div className="bg-transparent w-fit">
+        <div className="pb-3">
+          <div className="space-y-3 w-fit">
+            <ScreenshotQueue
+              screenshots={extraScreenshots}
+              onDeleteScreenshot={handleDeleteExtraScreenshot}
+            />
+            <div className="pt-2 w-fit">
+              <div className="text-xs text-white/90 backdrop-blur-md bg-black/60 rounded-lg py-2 px-4 flex items-center justify-center gap-4">
+                {/* Show/Hide */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] leading-none">Show/Hide</span>
+                  <div className="flex gap-1">
+                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                      ⌘
+                    </button>
+                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                      B
+                    </button>
+                  </div>
+                </div>
+                {extraScreenshots.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] leading-none">
+                      Re-solve/Debug
+                    </span>
+                    <div className="flex gap-1">
+                      <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                        ⌘
+                      </button>
+                      <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                        ↵
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {/* Screenshot */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] leading-none">
+                    {extraScreenshots.length === 0
+                      ? "Extra screenshot"
+                      : "Screenshot"}
+                  </span>
+                  <div className="flex gap-1">
+                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                      ⌘
+                    </button>
+                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                      H
+                    </button>
+                  </div>
+                </div>
+
+                {/* Start Over */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] leading-none">Start over</span>
+                  <div className="flex gap-1">
+                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                      ⌘
+                    </button>
+                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                      R
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="w-full text-sm text-black backdrop-blur-md bg-black/60 rounded-md">
         <div className="rounded-lg overflow-hidden">
           <div className="px-4 py-3 space-y-4">
-            {/* Problem Statement */}
             <ContentSection
               title="Problem Statement"
               content={problemStatementData?.problem_statement}
               isLoading={!problemStatementData}
             />
-            {/* Thoughts */}
             <ContentSection
               title="Thoughts"
               content={
@@ -169,13 +340,11 @@ const Solutions: React.FC = () => {
               }
               isLoading={!thoughtsData}
             />
-            {/* Solution  */}
             <SolutionSection
               title="Solutions"
               content={solutionData}
               isLoading={!solutionData}
             />
-
             {/* Constraints */}
             <div className="space-y-2">
               <h2 className="text-[13px] font-medium text-white tracking-wide">
@@ -215,9 +384,7 @@ const Solutions: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Helper Navbar */}
-      <ShortcutTooltip />
+      <SolutionsHelper />
     </div>
   )
 }

@@ -18,6 +18,10 @@ function getScreenHeight() {
 }
 
 const screenshotDir = path.join(app.getPath("userData"), "screenshots")
+const extraScreenshotDir = path.join(
+  app.getPath("userData"),
+  "extra_screenshots"
+)
 
 const PROCESSING_EVENTS = {
   START: "processing-start",
@@ -30,9 +34,13 @@ const PROCESSING_EVENTS = {
 if (!fs.existsSync(screenshotDir)) {
   fs.mkdirSync(screenshotDir)
 }
+if (!fs.existsSync(extraScreenshotDir)) {
+  fs.mkdirSync(extraScreenshotDir)
+}
 
 // Screenshot queue logic
 let screenshotQueue: string[] = []
+let extraScreenshotQueue: string[] = []
 const MAX_SCREENSHOTS = 5
 
 //additional context queue logic
@@ -168,29 +176,46 @@ function toggleMainWindow() {
   }
 }
 // LOGIC FOR CMD+H
-async function captureScreenshot(): Promise<string> {
+async function takeScreenshot(): Promise<string> {
   if (!mainWindow) throw new Error("No main window available")
-  if (view != "queue") {
-    console.log("You can't take a screenshot in the solutions view")
-    throw new Error("You can't take a screenshot in the solutions view")
-  }
-  await hideMainWindow()
-  const screenshotPath = path.join(screenshotDir, `${uuidv4()}.png`)
-  await screenshot({ filename: screenshotPath })
 
-  // Add to queue and maintain max size
-  screenshotQueue.push(screenshotPath)
-  if (screenshotQueue.length > MAX_SCREENSHOTS) {
-    const removedPath = screenshotQueue.shift()
-    if (removedPath) {
-      try {
-        await fs.promises.unlink(removedPath)
-      } catch (error) {
-        console.error("Error removing old screenshot:", error)
+  hideMainWindow()
+  let screenshotPath = ""
+  if (view == "queue") {
+    screenshotPath = path.join(screenshotDir, `${uuidv4()}.png`)
+    await screenshot({ filename: screenshotPath })
+
+    // Add to queue and maintain max size
+    screenshotQueue.push(screenshotPath)
+    if (screenshotQueue.length > MAX_SCREENSHOTS) {
+      const removedPath = screenshotQueue.shift()
+      if (removedPath) {
+        try {
+          await fs.promises.unlink(removedPath)
+        } catch (error) {
+          console.error("Error removing old screenshot:", error)
+        }
+      }
+    }
+  } else {
+    screenshotPath = path.join(extraScreenshotDir, `${uuidv4()}.png`)
+    await screenshot({ filename: screenshotPath })
+
+    // Add to queue and maintain max size
+    extraScreenshotQueue.push(screenshotPath)
+    if (extraScreenshotQueue.length > MAX_SCREENSHOTS) {
+      const removedPath = extraScreenshotQueue.shift()
+      if (removedPath) {
+        try {
+          await fs.promises.unlink(removedPath)
+        } catch (error) {
+          console.error("Error removing old screenshot:", error)
+        }
       }
     }
   }
-  await showMainWindow()
+
+  showMainWindow()
   return screenshotPath
 }
 
@@ -205,36 +230,127 @@ async function getImagePreview(filepath: string): Promise<string> {
   }
 }
 
+async function processScreenshots() {
+  if (mainWindow) {
+    if (view == "queue") {
+      if (screenshotQueue.length === 0) {
+        mainWindow.webContents.send(PROCESSING_EVENTS.NO_SCREENSHOTS)
+        return
+      }
+
+      mainWindow.webContents.send(PROCESSING_EVENTS.START)
+      try {
+        const screenshots = await Promise.all(
+          screenshotQueue.map(async (path) => ({
+            path,
+            preview: await getImagePreview(path)
+          }))
+        )
+
+        const result = await processScreenshotsHelper(screenshots)
+
+        if (result.success) {
+          console.log("Processing success:", result.data)
+
+          mainWindow.webContents.send(PROCESSING_EVENTS.SUCCESS, result.data)
+        } else {
+          mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, result.error)
+        }
+      } catch (error) {
+        console.error("Processing error:", error)
+        mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, error.message)
+      }
+    } else {
+      if (extraScreenshotQueue.length === 0) {
+        console.log("No extra screenshots to process")
+        mainWindow.webContents.send(PROCESSING_EVENTS.NO_SCREENSHOTS)
+        return
+      }
+      mainWindow.webContents.send(PROCESSING_EVENTS.START)
+      try {
+        const screenshots = await Promise.all(
+          [...screenshotQueue, ...extraScreenshotQueue].map(async (path) => ({
+            path,
+            preview: await getImagePreview(path)
+          }))
+        )
+
+        const result = await processScreenshotsHelper(screenshots)
+
+        if (result.success) {
+          console.log("Processing success:", result.data)
+          mainWindow.webContents.send(PROCESSING_EVENTS.SUCCESS, result.data)
+        } else {
+          mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, result.error)
+        }
+      } catch (error) {
+        console.error("Processing error:", error)
+        mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, error.message)
+      }
+    }
+  }
+}
 //helper function to process screenshots
-async function processScreenshotsHelper(screenshots: Array<{ path: string }>) {
+async function processScreenshotsHelper(
+  screenshots: Array<{ path: string }>,
+  problem_statement: string | null = null
+) {
   try {
     const formData = new FormData()
 
-    // Add text prompt first
-    formData.append(
-      "text_prompt",
-      "Analyze the coding problem in the image and provide solutions with different approaches and trade-offs."
-    )
-
-    // Append images with "images" as the field name (not "image")
     screenshots.forEach((screenshot) => {
       formData.append("images", fs.createReadStream(screenshot.path))
     })
 
-    const response = await axios.post(
-      "http://0.0.0.0:8000/extract_problem",
-      formData,
-      {
-        headers: {
-          ...formData.getHeaders() // This gets the correct content-type with boundary
-        },
-        timeout: 300000,
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity
+    let response
+    if (view == "queue") {
+      try {
+        view = "solutions"
+        response = await axios.post(
+          "http://0.0.0.0:8000/extract_problem",
+          formData,
+          {
+            headers: {
+              ...formData.getHeaders() // This gets the correct content-type with boundary
+            },
+            timeout: 300000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+          }
+        )
+      } catch (error: any) {
+        view = "queue"
+        mainWindow.webContents.send(
+          PROCESSING_EVENTS.ERROR,
+          "Error processing screenshots"
+        )
       }
-    )
+    } else {
+      formData.append("problem_statement", JSON.stringify(problem_statement))
+      try {
+        response = await axios.post(
+          "http://0.0.0.0:8000/debug_solutions",
+          formData,
+          {
+            headers: {
+              ...formData.getHeaders() // This gets the correct content-type with boundary
+            },
+            timeout: 300000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+          }
+        )
+      } catch (error: any) {
+        mainWindow.webContents.send(
+          PROCESSING_EVENTS.ERROR,
+          "Error processing additional context screenshots"
+        )
+      }
+    }
+    if (view == "queue") {
+      view = "solutions"
+    }
 
-    view = "solutions"
     return { success: true, data: response.data }
   } catch (error) {
     console.error("Processing error:", error)
@@ -246,7 +362,13 @@ async function deleteScreenshot(path: string) {
   try {
     await fs.promises.unlink(path) // Delete the file at the given path
     //delete it from the screenshottsqueue
-    screenshotQueue = screenshotQueue.filter((filePath) => filePath !== path)
+    if (view == "queue") {
+      screenshotQueue = screenshotQueue.filter((filePath) => filePath !== path)
+    } else {
+      extraScreenshotQueue = extraScreenshotQueue.filter(
+        (filePath) => filePath !== path
+      )
+    }
 
     return { success: true }
   } catch (error) {
@@ -269,18 +391,30 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle("take-screenshot", async () => {
-    const screenshotPath = await captureScreenshot()
+    const screenshotPath = await takeScreenshot()
     return screenshotPath
   })
 
   ipcMain.handle("get-screenshots", async () => {
+    console.log({ view })
     try {
-      const previews = await Promise.all(
-        screenshotQueue.map(async (path) => ({
-          path,
-          preview: await getImagePreview(path)
-        }))
-      )
+      let previews = []
+      if (view == "queue") {
+        previews = await Promise.all(
+          screenshotQueue.map(async (path) => ({
+            path,
+            preview: await getImagePreview(path)
+          }))
+        )
+      } else {
+        previews = await Promise.all(
+          extraScreenshotQueue.map(async (path) => ({
+            path,
+            preview: await getImagePreview(path)
+          }))
+        )
+      }
+      previews.forEach((preview: any) => console.log(preview.path))
       return previews
     } catch (error) {
       console.error("Error getting screenshots:", error)
@@ -296,9 +430,8 @@ app.whenReady().then(() => {
   globalShortcut.register("CommandOrControl+H", async () => {
     if (mainWindow) {
       console.log("Taking screenshot...")
-      //it shouldn't work if your window isn't in the queue mode
       try {
-        const screenshotPath = await captureScreenshot()
+        const screenshotPath = await takeScreenshot()
         const preview = await getImagePreview(screenshotPath)
         mainWindow.webContents.send("screenshot-taken", {
           path: screenshotPath,
@@ -311,33 +444,7 @@ app.whenReady().then(() => {
   })
 
   globalShortcut.register("CommandOrControl+Enter", async () => {
-    if (mainWindow) {
-      if (screenshotQueue.length === 0) {
-        mainWindow.webContents.send(PROCESSING_EVENTS.NO_SCREENSHOTS)
-        return
-      }
-      mainWindow.webContents.send(PROCESSING_EVENTS.START)
-      try {
-        const screenshots = await Promise.all(
-          screenshotQueue.map(async (path) => ({
-            path,
-            preview: await getImagePreview(path)
-          }))
-        )
-
-        const result = await processScreenshotsHelper(screenshots)
-
-        if (result.success) {
-          console.log("Processing success:", result.data)
-          mainWindow.webContents.send(PROCESSING_EVENTS.SUCCESS, result.data)
-        } else {
-          mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, result.error)
-        }
-      } catch (error) {
-        console.error("Processing error:", error)
-        mainWindow.webContents.send(PROCESSING_EVENTS.ERROR, error.message)
-      }
-    }
+    processScreenshots()
   })
 
   globalShortcut.register("CommandOrControl+B", () => {

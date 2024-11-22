@@ -20,8 +20,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("update-content-height", height),
   takeScreenshot: () => ipcRenderer.invoke("take-screenshot"), //turns the node function into a usable api exported to the web environment
   getScreenshots: () => ipcRenderer.invoke("get-screenshots"),
-  processScreenshots: (screenshots: Array<{ path: string; preview: string }>) =>
-    ipcRenderer.invoke("process-screenshots", screenshots),
   onProcessingStart: (callback: () => void) => {
     const subscription = () => callback()
     ipcRenderer.on(PROCESSING_EVENTS.START, subscription)
@@ -51,6 +49,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener(PROCESSING_EVENTS.NO_SCREENSHOTS, subscription)
     }
   },
+
   deleteScreenshot: (path: string) =>
     ipcRenderer.invoke("delete-screenshot", path), // New function
   onScreenshotTaken: (
