@@ -99,12 +99,14 @@ const App: React.FC = () => {
           "problem_statement",
           "thoughts"
         ])
+        setView("queue")
       }),
       window.electronAPI.onProcessingSuccess(async (data) => {
         if (view == "queue") {
           console.log("the view is queue")
-          queryClient.setQueryData(["problem_statement"], data)
           queryClient.invalidateQueries(["problem_statement"])
+          queryClient.setQueryData(["problem_statement"], data)
+
           try {
             // Step 2: Generate solutions
             console.log("Trying to generate solutions")

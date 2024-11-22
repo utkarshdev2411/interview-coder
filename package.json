@@ -13,17 +13,22 @@
     "watch": "tsc -p electron/tsconfig.json --watch"
   },
   "build": {
-    "appId": "com.interview-coder",
+    "appId": "com.electron.interview-coder",
     "productName": "Interview Coder",
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*",
+      "package.json"
     ],
     "directories": {
       "output": "release"
     },
     "mac": {
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "target": [

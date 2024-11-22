@@ -1,27 +1,80 @@
 import { contextBridge, ipcRenderer } from "electron"
 
-//types for electron api object to use in imports
+// Types for the exposed Electron API
 interface ElectronAPI {
-  takeScreenshot: () => Promise<string>
+  toggleMainWindow: () => Promise<{ success: boolean; error?: string }>
+  updateContentHeight: (
+    height: number
+  ) => Promise<{ success: boolean; error?: string }>
+  takeScreenshot: () => Promise<{
+    success: boolean
+    path?: string
+    preview?: string
+    error?: string
+  }>
+  getScreenshots: () => Promise<{
+    success: boolean
+    previews?: Array<{ path: string; preview: string }> | null
+    error?: string
+  }>
+  deleteScreenshot: (
+    path: string
+  ) => Promise<{ success: boolean; error?: string }>
+  onScreenshotTaken: (
+    callback: (data: { path: string; preview: string }) => void
+  ) => () => void
   onSolutionsReady: (callback: (solutions: string) => void) => () => void
   onResetView: (callback: () => void) => () => void
+  onProcessingStart: (callback: () => void) => () => void
+  onProcessingSuccess: (callback: (data: any) => void) => () => void
+  onProcessingExtraSuccess: (callback: (data: any) => void) => () => void
+  onProcessingError: (callback: (error: string) => void) => () => void
+  onProcessingNoScreenshots: (callback: () => void) => () => void
 }
 
 const PROCESSING_EVENTS = {
   START: "processing-start",
   SUCCESS: "processing-success",
+  EXTRA_SUCCESS: "extra-processing-success",
   ERROR: "processing-error",
-  NO_SCREENSHOTS: "processing-no-screenshots",
-  EXTRA_SUCCESS: "extra-processing-success"
+  NO_SCREENSHOTS: "processing-no-screenshots"
 } as const
 
-//our preload.ts allows us to expose certain functions used in the main.ts to the web environment, which we can access in our app.tsx
+// Expose the Electron API to the renderer process
 contextBridge.exposeInMainWorld("electronAPI", {
   toggleMainWindow: () => ipcRenderer.invoke("toggle-window"),
   updateContentHeight: (height: number) =>
     ipcRenderer.invoke("update-content-height", height),
-  takeScreenshot: () => ipcRenderer.invoke("take-screenshot"), //turns the node function into a usable api exported to the web environment
+  takeScreenshot: () => ipcRenderer.invoke("take-screenshot"),
   getScreenshots: () => ipcRenderer.invoke("get-screenshots"),
+  deleteScreenshot: (path: string) =>
+    ipcRenderer.invoke("delete-screenshot", path),
+
+  // Event listeners
+  onScreenshotTaken: (
+    callback: (data: { path: string; preview: string }) => void
+  ) => {
+    const subscription = (_: any, data: { path: string; preview: string }) =>
+      callback(data)
+    ipcRenderer.on("screenshot-taken", subscription)
+    return () => {
+      ipcRenderer.removeListener("screenshot-taken", subscription)
+    }
+  },
+  onSolutionsReady: (callback: (solutions: string) => void) => {
+    const subscription = (_: any, solutions: string) => callback(solutions)
+    ipcRenderer.on("solutions-ready", subscription)
+    return () => {
+      ipcRenderer.removeListener("solutions-ready", subscription)
+    }
+  },
+  onResetView: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on("reset-view", subscription)
+    return () => {
+      ipcRenderer.removeListener("reset-view", subscription)
+    }
+  },
   onProcessingStart: (callback: () => void) => {
     const subscription = () => callback()
     ipcRenderer.on(PROCESSING_EVENTS.START, subscription)
@@ -30,7 +83,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }
   },
   onProcessingSuccess: (callback: (data: any) => void) => {
-    // Update this to pass the event data
     const subscription = (_event: any, data: any) => callback(data)
     ipcRenderer.on(PROCESSING_EVENTS.SUCCESS, subscription)
     return () => {
@@ -38,7 +90,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }
   },
   onProcessingExtraSuccess: (callback: (data: any) => void) => {
-    // Update this to pass the event data
     const subscription = (_event: any, data: any) => callback(data)
     ipcRenderer.on(PROCESSING_EVENTS.EXTRA_SUCCESS, subscription)
     return () => {
@@ -58,32 +109,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => {
       ipcRenderer.removeListener(PROCESSING_EVENTS.NO_SCREENSHOTS, subscription)
     }
-  },
-
-  deleteScreenshot: (path: string) =>
-    ipcRenderer.invoke("delete-screenshot", path), // New function
-  onScreenshotTaken: (
-    callback: (data: { path: string; preview: string }) => void
-  ) => {
-    const subscription = (_: any, data: { path: string; preview: string }) =>
-      callback(data)
-    ipcRenderer.on("screenshot-taken", subscription)
-    return () => {
-      ipcRenderer.removeListener("screenshot-taken", subscription)
-    }
-  },
-  onSolutionsReady: (callback: (solutions: string) => void) => {
-    const subscription = (_: any, solutions: string) => callback(solutions)
-    ipcRenderer.on("solutions-ready", subscription)
-    return () => {
-      ipcRenderer.removeListener("solutions-ready", subscription)
-    }
-  },
-  onResetView: (callback: () => void) => { 
-    const subscription = () => callback();
-    ipcRenderer.on("reset-view", subscription);
-    return () => {
-      ipcRenderer.removeListener("reset-view", subscription);
-    };
-  },
+  }
 } as ElectronAPI)

@@ -41,6 +41,10 @@ class AppState {
     EXTRA_SUCCESS: "extra-processing-success"
   } as const
 
+  // AbortControllers for API requests
+  private currentProcessingAbortController: AbortController | null = null
+  private currentExtraProcessingAbortController: AbortController | null = null
+
   private constructor() {
     // Initialize directories
     this.screenshotDir = path.join(app.getPath("userData"), "screenshots")
@@ -132,6 +136,7 @@ class AppState {
 
     this.setupWindowListeners()
   }
+
   private setupWindowListeners(): void {
     if (!this.mainWindow) return
 
@@ -290,6 +295,7 @@ class AppState {
       throw error
     }
   }
+
   // Processing methods
   private async processScreenshots(): Promise<void> {
     if (!this.mainWindow) return
@@ -301,6 +307,11 @@ class AppState {
       }
 
       this.mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
+
+      // Initialize AbortController
+      this.currentProcessingAbortController = new AbortController()
+      const { signal } = this.currentProcessingAbortController
+
       try {
         const screenshots = await Promise.all(
           this.screenshotQueue.map(async (path) => ({
@@ -308,11 +319,13 @@ class AppState {
             preview: await this.getImagePreview(path)
           }))
         )
+
         console.log("regular screenshots")
         screenshots.forEach((screenshot: any) => {
           console.log(screenshot.path)
         })
-        const result = await this.processScreenshotsHelper(screenshots)
+
+        const result = await this.processScreenshotsHelper(screenshots, signal)
 
         if (result.success) {
           console.log("Processing success:", result.data)
@@ -327,20 +340,36 @@ class AppState {
           )
         }
       } catch (error) {
-        console.error("Processing error:", error)
-        this.mainWindow.webContents.send(
-          this.PROCESSING_EVENTS.ERROR,
-          error.message
-        )
+        if (axios.isCancel(error)) {
+          console.log("Processing request canceled")
+          this.mainWindow.webContents.send(
+            this.PROCESSING_EVENTS.ERROR,
+            "Processing was canceled by the user."
+          )
+        } else {
+          console.error("Processing error:", error)
+          this.mainWindow.webContents.send(
+            this.PROCESSING_EVENTS.ERROR,
+            error.message
+          )
+        }
+      } finally {
+        this.currentProcessingAbortController = null
       }
     } else {
-      //if view is solutions
+      // Existing logic for 'solutions' view
+
       if (this.extraScreenshotQueue.length === 0) {
         console.log("No extra screenshots to process")
         this.mainWindow.webContents.send(this.PROCESSING_EVENTS.NO_SCREENSHOTS)
         return
       }
       this.mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
+
+      // Initialize AbortController
+      this.currentExtraProcessingAbortController = new AbortController()
+      const { signal } = this.currentExtraProcessingAbortController
+
       try {
         const screenshots = await Promise.all(
           [...this.screenshotQueue, ...this.extraScreenshotQueue].map(
@@ -351,7 +380,10 @@ class AppState {
           )
         )
 
-        const result = await this.processExtraScreenshotsHelper(screenshots)
+        const result = await this.processExtraScreenshotsHelper(
+          screenshots,
+          signal
+        )
 
         if (result.success) {
           console.log("Processing extra screenshots success:", result.data)
@@ -366,16 +398,29 @@ class AppState {
           )
         }
       } catch (error) {
-        console.error("Processing error:", error)
-        this.mainWindow.webContents.send(
-          this.PROCESSING_EVENTS.ERROR,
-          error.message
-        )
+        if (axios.isCancel(error)) {
+          console.log("Extra processing request canceled")
+          this.mainWindow.webContents.send(
+            this.PROCESSING_EVENTS.ERROR,
+            "Extra processing was canceled by the user."
+          )
+        } else {
+          console.error("Processing error:", error)
+          this.mainWindow.webContents.send(
+            this.PROCESSING_EVENTS.ERROR,
+            error.message
+          )
+        }
+      } finally {
+        this.currentExtraProcessingAbortController = null
       }
     }
   }
 
-  private async processScreenshotsHelper(screenshots: Array<{ path: string }>) {
+  private async processScreenshotsHelper(
+    screenshots: Array<{ path: string }>,
+    signal: AbortSignal // Added signal parameter
+  ) {
     try {
       const formData = new FormData()
 
@@ -395,7 +440,8 @@ class AppState {
             },
             timeout: 300000,
             maxContentLength: Infinity,
-            maxBodyLength: Infinity
+            maxBodyLength: Infinity,
+            signal // Attach the AbortSignal here
           }
         )
         this.problemInfo = {
@@ -407,12 +453,8 @@ class AppState {
         }
       } catch (error: any) {
         this.view = "queue"
-        if (this.mainWindow) {
-          this.mainWindow.webContents.send(
-            this.PROCESSING_EVENTS.ERROR,
-            "Error processing screenshots"
-          )
-        }
+        // Removed error dispatching here
+        throw error // Rethrow to handle in the outer try-catch
       }
 
       this.view = "solutions"
@@ -423,8 +465,10 @@ class AppState {
       return { success: false, error: error.message }
     }
   }
+
   private async processExtraScreenshotsHelper(
-    screenshots: Array<{ path: string }>
+    screenshots: Array<{ path: string }>,
+    signal: AbortSignal // Added signal parameter
   ) {
     try {
       const formData = new FormData()
@@ -438,8 +482,7 @@ class AppState {
         throw new Error("No problem info available")
       }
 
-      // Just log the problem info before sending
-
+      // Add problem_info
       formData.append("problem_info", JSON.stringify(this.problemInfo))
 
       const response = await axios.post(
@@ -451,7 +494,8 @@ class AppState {
           },
           timeout: 300000,
           maxContentLength: Infinity,
-          maxBodyLength: Infinity
+          maxBodyLength: Infinity,
+          signal // Attach the AbortSignal here
         }
       )
 
@@ -498,12 +542,19 @@ class AppState {
       }
     })
 
-    ipcMain.handle("delete-screenshot", async (event, path) => {
+    ipcMain.handle("delete-screenshot", async (event, path: string) => {
       return this.deleteScreenshot(path)
     })
 
     ipcMain.handle("take-screenshot", async () => {
-      return this.takeScreenshot()
+      try {
+        const screenshotPath = await this.takeScreenshot()
+        const preview = await this.getImagePreview(screenshotPath)
+        return { path: screenshotPath, preview }
+      } catch (error) {
+        console.error("Error taking screenshot:", error)
+        throw error
+      }
     })
 
     ipcMain.handle("get-screenshots", async () => {
@@ -541,7 +592,7 @@ class AppState {
 
     ipcMain.handle("reset-queues", async () => {
       try {
-        AppState.getInstance().clearQueues()
+        this.clearQueues()
         console.log("Screenshot queues have been cleared.")
         return { success: true }
       } catch (error: any) {
@@ -550,6 +601,33 @@ class AppState {
       }
     })
   }
+
+  // Method to cancel ongoing API requests
+  public cancelOngoingRequests(): void {
+    let wasCancelled = false
+
+    if (this.currentProcessingAbortController) {
+      this.currentProcessingAbortController.abort()
+      this.currentProcessingAbortController = null
+      console.log("Canceled ongoing processing request.")
+      wasCancelled = true
+    }
+
+    if (this.currentExtraProcessingAbortController) {
+      this.currentExtraProcessingAbortController.abort()
+      this.currentExtraProcessingAbortController = null
+      console.log("Canceled ongoing extra processing request.")
+      wasCancelled = true
+    }
+
+    if (wasCancelled && this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send(
+        this.PROCESSING_EVENTS.ERROR,
+        "Processing was canceled by the user."
+      )
+    }
+  }
+
   // Global shortcuts setup
   public setupGlobalShortcuts(): void {
     globalShortcut.register("CommandOrControl+H", async () => {
@@ -574,15 +652,18 @@ class AppState {
 
     globalShortcut.register("CommandOrControl+R", () => {
       console.log(
-        "Resetting screenshot queues and switching view to 'queue'..."
+        "Command + R pressed. Canceling requests and resetting queues..."
       )
+
+      // Cancel ongoing API requests
+      this.cancelOngoingRequests()
 
       // Clear both screenshot queues
       this.clearQueues()
 
       console.log("Cleared queues.")
 
-      // **Update the view state to 'queue'**
+      // Update the view state to 'queue'
       this.view = "queue"
 
       // Notify renderer process to switch view to 'queue'
