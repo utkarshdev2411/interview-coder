@@ -26,7 +26,7 @@ export const setupIPC = () => {
       )
 
       const response = await axios.post<{ solutions: SolutionsResponse }>(
-        "http://0.0.0.0:8000/process_image",
+        "https://web-production-b2eb.up.railway.app/process_image",
         formData,
         {
           headers: {

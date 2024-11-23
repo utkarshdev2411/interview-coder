@@ -111,7 +111,7 @@ const App: React.FC = () => {
             // Step 2: Generate solutions
             console.log("Trying to generate solutions")
             const solutionsResponse = await axios.post(
-              "http://0.0.0.0:8000/generate_solutions",
+              "https://web-production-b2eb.up.railway.app/generate_solutions",
               { problem_info: data },
               {
                 timeout: 300000

@@ -432,7 +432,7 @@ class AppState {
       try {
         this.view = "solutions"
         response = await axios.post(
-          "http://0.0.0.0:8000/extract_problem",
+          "https://web-production-b2eb.up.railway.app/extract_problem",
           formData,
           {
             headers: {
@@ -486,7 +486,7 @@ class AppState {
       formData.append("problem_info", JSON.stringify(this.problemInfo))
 
       const response = await axios.post(
-        "http://0.0.0.0:8000/debug_solutions",
+        "https://web-production-b2eb.up.railway.app/debug_solutions",
         formData,
         {
           headers: {
