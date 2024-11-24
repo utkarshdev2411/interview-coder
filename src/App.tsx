@@ -121,10 +121,14 @@ const App: React.FC = () => {
             console.log({ solutionsResponse })
             const solutionCode = solutionsResponse.data.solution.code
             const thoughtProcess = solutionsResponse.data.solution.thoughts
+            const timeComplexity = solutionsResponse.data.solution.time_complexity
+            const spaceComplexity = solutionsResponse.data.solution.space_complexity
 
             // Store both code and thoughts in React Query
             queryClient.setQueryData(["solution"], solutionCode)
             queryClient.setQueryData(["thoughts"], thoughtProcess)
+            queryClient.setQueryData(["time_complexity"], timeComplexity)
+            queryClient.setQueryData(["space_complexity"], spaceComplexity)
           } catch (error) {
             console.log("error generating solutions")
           }

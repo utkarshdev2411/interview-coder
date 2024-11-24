@@ -10,26 +10,9 @@ import {
   ToastTitle,
   ToastVariant
 } from "../components/ui/toast"
+import { ProblemStatementData } from "../types/solutions";
 
-interface problemStatementData {
-  problem_statement: string
-  input_format: {
-    description: string
-    parameters: any[]
-  }
-  output_format: {
-    description: string
-    type: string
-    subtype: string
-  }
-  constraints: {
-    description: string
-    parameter: string
-  }[]
-  test_cases: any[]
-  validation_type: string
-  difficulty: string
-}
+interface problemStatementData extends ProblemStatementData {}
 
 // Create an array of widths that look natural for text
 const naturalWidths = [
@@ -109,12 +92,57 @@ const SolutionSection = ({
   </div>
 )
 
+const ComplexitySection = ({
+  timeComplexity,
+  spaceComplexity,
+  isLoading
+}: {
+  timeComplexity: string | null
+  spaceComplexity: string | null
+  isLoading: boolean
+}) => (
+  <div className="space-y-2">
+    <h2 className="text-[13px] font-medium text-white tracking-wide">
+      Complexity
+    </h2>
+    {isLoading ? (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
+          <SkeletonLine width={naturalWidths[2]} />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
+          <SkeletonLine width={naturalWidths[2]} />
+        </div>
+      </div>
+    ) : (
+      <div className="space-y-1">
+        <div className="flex items-start gap-2 text-[13px] leading-[1.4] text-gray-100">
+          <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
+          <div>
+            <strong>Time:</strong> {timeComplexity}
+          </div>
+        </div>
+        <div className="flex items-start gap-2 text-[13px] leading-[1.4] text-gray-100">
+          <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
+          <div>
+            <strong>Space:</strong> {spaceComplexity}
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)
+
 const Solutions: React.FC = () => {
   const queryClient = useQueryClient()
   const [problemStatementData, setProblemStatementData] =
     useState<problemStatementData | null>(null)
   const [solutionData, setSolutionData] = useState<string | null>(null)
   const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
+  const [timeComplexityData, setTimeComplexityData] = useState<string | null>(null)
+  const [spaceComplexityData, setSpaceComplexityData] = useState<string | null>(null)
 
   const [toastOpen, setToastOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<ToastMessage>({
@@ -144,6 +172,7 @@ const Solutions: React.FC = () => {
     setToastMessage({ title, description, variant })
     setToastOpen(true)
   }
+
   const handleDeleteExtraScreenshot = async (index: number) => {
     const screenshotToDelete = extraScreenshots[index]
 
@@ -178,9 +207,11 @@ const Solutions: React.FC = () => {
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
       window.electronAPI.onProcessingStart(() => {
-        //everytime processing starts, we'll reset stuff ot this
+        // Every time processing starts, reset relevant states
         setSolutionData(null)
         setThoughtsData(null)
+        setTimeComplexityData(null)
+        setSpaceComplexityData(null)
       }),
 
       window.electronAPI.onProcessingError((error: string) => {
@@ -189,9 +220,11 @@ const Solutions: React.FC = () => {
           "There was an error processing your extra screenshots.",
           "error"
         )
-        //here, processing error means a processing error for the EXTRA screenshots. this means that the solutions and thoughts should be reset to what they previously were
+        // Reset solutions and complexities to previous states
         setSolutionData(queryClient.getQueryData(["solution"]) || null)
         setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
+        setTimeComplexityData(queryClient.getQueryData(["time_complexity"]) || null)
+        setSpaceComplexityData(queryClient.getQueryData(["space_complexity"]) || null)
         console.error("Processing error:", error)
       }),
       window.electronAPI.onProcessingNoScreenshots(() => {
@@ -207,14 +240,16 @@ const Solutions: React.FC = () => {
       resizeObserver.disconnect()
       cleanupFunctions.forEach((cleanup) => cleanup())
     }
-  }, []) // No more dependency on Toggle View
+  }, []) // No dependency on Toggle View
 
   useEffect(() => {
     setProblemStatementData(
       queryClient.getQueryData(["problem_statement"]) || null
     )
     setSolutionData(queryClient.getQueryData(["solution"]) || null)
-    setThoughtsData(queryClient.getQueryData(["thoughts"]) || null) // Updated this line
+    setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
+    setTimeComplexityData(queryClient.getQueryData(["time_complexity"]) || null)
+    setSpaceComplexityData(queryClient.getQueryData(["space_complexity"]) || null)
 
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (event?.query.queryKey[0] === "problem_statement") {
@@ -223,11 +258,16 @@ const Solutions: React.FC = () => {
         )
       }
       if (event?.query.queryKey[0] === "thoughts") {
-        // Updated this line
         setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
       }
       if (event?.query.queryKey[0] === "solution") {
         setSolutionData(queryClient.getQueryData(["solution"]) || null)
+      }
+      if (event?.query.queryKey[0] === "time_complexity") {
+        setTimeComplexityData(queryClient.getQueryData(["time_complexity"]) || null)
+      }
+      if (event?.query.queryKey[0] === "space_complexity") {
+        setSpaceComplexityData(queryClient.getQueryData(["space_complexity"]) || null)
       }
     })
     return () => unsubscribe()
@@ -346,42 +386,12 @@ const Solutions: React.FC = () => {
               content={solutionData}
               isLoading={!solutionData}
             />
-            {/* Constraints */}
-            <div className="space-y-2">
-              <h2 className="text-[13px] font-medium text-white tracking-wide">
-                Constraints
-              </h2>
-              {!problemStatementData ? (
-                <div className="space-y-1.5">
-                  {Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
-                        <SkeletonLine
-                          width={
-                            naturalWidths[Math.min(i, naturalWidths.length - 1)]
-                          }
-                        />
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {problemStatementData.constraints.map((constraint, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start gap-2 text-[13px] leading-[1.4] text-gray-100"
-                    >
-                      <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
-                      <div className="max-w-[600px]">
-                        {constraint.description}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Complexity */}
+            <ComplexitySection
+              timeComplexity={timeComplexityData}
+              spaceComplexity={spaceComplexityData}
+              isLoading={!timeComplexityData || !spaceComplexityData}
+            />
           </div>
         </div>
       </div>
