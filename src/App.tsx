@@ -93,13 +93,18 @@ const App: React.FC = () => {
         setView("solutions")
         console.log("starting processing")
       }),
+      // Update this reset handler
       window.electronAPI.onResetView(() => {
-        queryClient.invalidateQueries([
-          "solution",
-          "problem_statement",
-          "thoughts"
-        ])
+        console.log("Received 'reset-view' message from main process")
+        // Remove all relevant queries
+        queryClient.removeQueries(['screenshots'])
+        queryClient.removeQueries(['solution'])
+        queryClient.removeQueries(['problem_statement'])
+        queryClient.removeQueries(['thoughts'])
+        queryClient.removeQueries(['time_complexity'])
+        queryClient.removeQueries(['space_complexity'])
         setView("queue")
+        console.log("View reset to 'queue' via Command+R shortcut")
       }),
       window.electronAPI.onProcessingSuccess(async (data) => {
         if (view == "queue") {
@@ -131,7 +136,7 @@ const App: React.FC = () => {
             queryClient.setQueryData(["space_complexity"], spaceComplexity)
           } catch (error) {
             console.log("error generating solutions")
-          }
+          } 
         }
       }),
       window.electronAPI.onProcessingExtraSuccess((data) => {

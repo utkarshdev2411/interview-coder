@@ -109,11 +109,11 @@ const ComplexitySection = ({
       <div className="space-y-1.5">
         <div className="flex items-center gap-2">
           <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
-          <SkeletonLine width={naturalWidths[1]} />
+          <SkeletonLine width={naturalWidths[0]} />
         </div>
         <div className="flex items-center gap-2">
           <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
-          <SkeletonLine width={naturalWidths[1]} />
+          <SkeletonLine width={naturalWidths[0]} />
         </div>
       </div>
     ): (
