@@ -23,7 +23,7 @@ const naturalWidths = [
 
 const SkeletonLine = ({ width = naturalWidths[2] }: { width?: string }) => (
   <div
-    className={`h-3 bg-gray-300/50 rounded-sm bg-pulse animate-pulse ${width}`}
+    className={`h-3 bg-gray-300/50 rounded-sm animate-pulse ${width}`}
     style={{ maxWidth: "500px" }}
   />
 )
@@ -107,14 +107,8 @@ const ComplexitySection = ({
     </h2>
     {isLoading ? (
       <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
-          <SkeletonLine width={naturalWidths[2]} />
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
-          <SkeletonLine width={naturalWidths[2]} />
-        </div>
+        <SkeletonLine width={naturalWidths[0]} />
+        <SkeletonLine width={naturalWidths[0]} />
       </div>
     ) : (
       <div className="space-y-1">
@@ -386,7 +380,6 @@ const Solutions: React.FC = () => {
               content={solutionData}
               isLoading={!solutionData}
             />
-            {/* Complexity */}
             <ComplexitySection
               timeComplexity={timeComplexityData}
               spaceComplexity={spaceComplexityData}
