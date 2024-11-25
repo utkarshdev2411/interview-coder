@@ -141,12 +141,17 @@ const App: React.FC = () => {
       }),
       window.electronAPI.onProcessingExtraSuccess((data) => {
         console.log("solutions data", { data })
+        // Update all relevant query data
+        queryClient.setQueryData(["solution"], data.solution.code)
+        queryClient.setQueryData(["thoughts"], data.solution.thoughts)
+        queryClient.setQueryData(["time_complexity"], data.solution.time_complexity) // Add this
+        queryClient.setQueryData(["space_complexity"], data.solution.space_complexity) // Add this
+        
+        // Invalidate queries to trigger re-renders
         queryClient.invalidateQueries(["solution"])
         queryClient.invalidateQueries(["thoughts"])
-        const solutionCode = data.solution.code
-        const thoughtProcess = data.solution.thoughts
-        queryClient.setQueryData(["solution"], solutionCode)
-        queryClient.setQueryData(["thoughts"], thoughtProcess)
+        queryClient.invalidateQueries(["time_complexity"])
+        queryClient.invalidateQueries(["space_complexity"])
       })
     ]
     return () => cleanupFunctions.forEach((cleanup) => cleanup())

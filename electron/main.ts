@@ -491,6 +491,8 @@ class AppState {
       // Add problem_info
       formData.append("problem_info", JSON.stringify(this.problemInfo))
 
+      console.log(formData)
+
       const response = await axios.post(
         "https://web-production-b2eb.up.railway.app/debug_solutions",
         formData,
