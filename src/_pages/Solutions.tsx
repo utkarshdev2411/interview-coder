@@ -166,8 +166,8 @@ const Solutions: React.FC = () => {
         return []
       }
     },
-    staleTime: Infinity, // Add this
-    cacheTime: Infinity // Add this
+    staleTime: Infinity,
+    cacheTime: Infinity
   })
 
   const showToast = (

@@ -37,8 +37,11 @@ class AppState {
     START: "processing-start",
     SUCCESS: "processing-success",
     ERROR: "processing-error",
+    UNAUTHORIZED: "procesing-unauthorized",
     NO_SCREENSHOTS: "processing-no-screenshots",
-    EXTRA_SUCCESS: "extra-processing-success"
+    EXTRA_SUCCESS: "extra-processing-success",
+    PROBLEM_EXTRACTED: "problem-extracted",
+    INITIAL_SOLUTION_GENERATED: "initial-solution-generated"
   } as const
 
   // AbortControllers for API requests
@@ -313,7 +316,7 @@ class AppState {
       }
 
       this.mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
-
+      this.view = "solutions" //set it to solutions as soon as it starts
       // Initialize AbortController
       this.currentProcessingAbortController = new AbortController()
       const { signal } = this.currentProcessingAbortController
@@ -392,7 +395,6 @@ class AppState {
         )
 
         if (result.success) {
-          console.log("Processing extra screenshots success:", result.data)
           this.mainWindow.webContents.send(
             this.PROCESSING_EVENTS.EXTRA_SUCCESS,
             result.data
@@ -425,7 +427,7 @@ class AppState {
 
   private async processScreenshotsHelper(
     screenshots: Array<{ path: string }>,
-    signal: AbortSignal // Added signal parameter
+    signal: AbortSignal
   ) {
     try {
       const formData = new FormData()
@@ -434,11 +436,10 @@ class AppState {
         formData.append("images", fs.createReadStream(screenshot.path))
       })
 
-      let response
       try {
-        this.view = "solutions"
-        response = await axios.post(
-          "https://web-production-b2eb.up.railway.app/extract_problem",
+        // First API call - extract problem
+        const problemResponse = await axios.post(
+          "http://localhost:8000/extract_problem",
           formData,
           {
             headers: {
@@ -447,27 +448,99 @@ class AppState {
             timeout: 300000,
             maxContentLength: Infinity,
             maxBodyLength: Infinity,
-            signal // Attach the AbortSignal here
+            signal
           }
         )
+
+        // Store problem info
         this.problemInfo = {
-          problem_statement: response.data.problem_statement,
-          input_format: response.data.input_format,
-          output_format: response.data.output_format,
-          constraints: response.data.constraints,
-          test_cases: response.data.test_cases
+          problem_statement: problemResponse.data.problem_statement,
+          input_format: problemResponse.data.input_format,
+          output_format: problemResponse.data.output_format,
+          constraints: problemResponse.data.constraints,
+          test_cases: problemResponse.data.test_cases
         }
+
+        // Send first success event
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send(
+            this.PROCESSING_EVENTS.PROBLEM_EXTRACTED,
+            problemResponse.data
+          )
+        }
+
+        // Second API call - generate solutions
+        if (this.mainWindow) {
+          const solutionsResult = await this.generateSolutionsHelper()
+          if (solutionsResult.success) {
+            this.mainWindow.webContents.send(
+              this.PROCESSING_EVENTS.INITIAL_SOLUTION_GENERATED,
+              solutionsResult.data
+            )
+          } else {
+            throw new Error(
+              solutionsResult.error || "Failed to generate solutions"
+            )
+          }
+        }
+
+        return { success: true, data: problemResponse.data }
       } catch (error: any) {
-        this.view = "queue"
-        // Removed error dispatching here
-        throw error // Rethrow to handle in the outer try-catch
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send(
+              this.PROCESSING_EVENTS.UNAUTHORIZED,
+              "Authentication required"
+            )
+          }
+          this.view = "queue"
+          throw new Error("Authentication required")
+        }
+        throw error
       }
-
-      this.view = "solutions"
-
-      return { success: true, data: response.data }
     } catch (error) {
       console.error("Processing error:", error)
+      return { success: false, error: error.message }
+    }
+  }
+
+  // Implement generateSolutionsHelper
+  private async generateSolutionsHelper() {
+    try {
+      if (!this.problemInfo) {
+        throw new Error("No problem info available")
+      }
+
+      try {
+        const response = await axios.post(
+          "http://localhost:8000/generate_solutions",
+          { problem_info: this.problemInfo },
+          {
+            timeout: 300000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+          }
+        )
+
+        if (!response || !response.data) {
+          throw new Error("No response data received")
+        }
+
+        return { success: true, data: response.data }
+      } catch (error: any) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send(
+              this.PROCESSING_EVENTS.UNAUTHORIZED,
+              "Authentication required"
+            )
+          }
+          throw new Error("Authentication required")
+        }
+        throw error
+      }
+    } catch (error) {
+      console.error("Solutions generation error:", error)
       return { success: false, error: error.message }
     }
   }
@@ -492,32 +565,40 @@ class AppState {
       formData.append("problem_info", JSON.stringify(this.problemInfo))
 
       console.log(formData)
+      try {
+        const response = await axios.post(
+          "http://localhost:8000/debug_solutions",
+          formData,
+          {
+            headers: {
+              ...formData.getHeaders()
+            },
+            timeout: 300000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            signal
+          }
+        )
 
-      const response = await axios.post(
-        "https://web-production-b2eb.up.railway.app/debug_solutions",
-        formData,
-        {
-          headers: {
-            ...formData.getHeaders()
-          },
-          timeout: 300000,
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-          signal // Attach the AbortSignal here
+        if (!response || !response.data) {
+          throw new Error("No response data received")
         }
-      )
 
-      if (!response || !response.data) {
-        throw new Error("No response data received")
+        return { success: true, data: response.data }
+      } catch (error: any) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send(
+              this.PROCESSING_EVENTS.UNAUTHORIZED,
+              "Authentication required"
+            )
+          }
+          throw new Error("Authentication required")
+        }
+        throw error
       }
-
-      return { success: true, data: response.data }
     } catch (error) {
       console.error("Processing error:", error)
-      if (axios.isAxiosError(error)) {
-        console.error("Response status:", error.response?.status)
-        console.error("Response error data:", error.response?.data)
-      }
       return { success: false, error: error.message }
     }
   }

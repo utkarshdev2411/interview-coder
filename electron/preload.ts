@@ -2,16 +2,10 @@ import { contextBridge, ipcRenderer } from "electron"
 
 // Types for the exposed Electron API
 interface ElectronAPI {
-  toggleMainWindow: () => Promise<{ success: boolean; error?: string }>
   updateContentHeight: (
     height: number
   ) => Promise<{ success: boolean; error?: string }>
-  takeScreenshot: () => Promise<{
-    success: boolean
-    path?: string
-    preview?: string
-    error?: string
-  }>
+
   getScreenshots: () => Promise<{
     success: boolean
     previews?: Array<{ path: string; preview: string }> | null
@@ -30,19 +24,26 @@ interface ElectronAPI {
   onProcessingExtraSuccess: (callback: (data: any) => void) => () => void
   onProcessingError: (callback: (error: string) => void) => () => void
   onProcessingNoScreenshots: (callback: () => void) => () => void
+  onProblemExtracted: (callback: (data: any) => void) => () => void
+  onInitialSolutionGenerated: (callback: (data: any) => void) => () => void
+
+  onUnauthorized: (callback: () => void) => () => void
+  takeScreenshot: () => Promise<void>
 }
 
 const PROCESSING_EVENTS = {
   START: "processing-start",
   SUCCESS: "processing-success",
-  EXTRA_SUCCESS: "extra-processing-success",
   ERROR: "processing-error",
-  NO_SCREENSHOTS: "processing-no-screenshots"
+  UNAUTHORIZED: "procesing-unauthorized",
+  NO_SCREENSHOTS: "processing-no-screenshots",
+  EXTRA_SUCCESS: "extra-processing-success",
+  PROBLEM_EXTRACTED: "problem-extracted",
+  INITIAL_SOLUTION_GENERATED: "initial-solution-generated"
 } as const
 
 // Expose the Electron API to the renderer process
 contextBridge.exposeInMainWorld("electronAPI", {
-  toggleMainWindow: () => ipcRenderer.invoke("toggle-window"),
   updateContentHeight: (height: number) =>
     ipcRenderer.invoke("update-content-height", height),
   takeScreenshot: () => ipcRenderer.invoke("take-screenshot"),
@@ -108,6 +109,34 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on(PROCESSING_EVENTS.NO_SCREENSHOTS, subscription)
     return () => {
       ipcRenderer.removeListener(PROCESSING_EVENTS.NO_SCREENSHOTS, subscription)
+    }
+  },
+  // And in the implementation:
+  onProblemExtracted: (callback: (data: any) => void) => {
+    const subscription = (_: any, data: any) => callback(data)
+    ipcRenderer.on(PROCESSING_EVENTS.PROBLEM_EXTRACTED, subscription)
+    return () => {
+      ipcRenderer.removeListener(
+        PROCESSING_EVENTS.PROBLEM_EXTRACTED,
+        subscription
+      )
+    }
+  },
+  onInitialSolutionGenerated: (callback: (data: any) => void) => {
+    const subscription = (_: any, data: any) => callback(data)
+    ipcRenderer.on(PROCESSING_EVENTS.INITIAL_SOLUTION_GENERATED, subscription)
+    return () => {
+      ipcRenderer.removeListener(
+        PROCESSING_EVENTS.INITIAL_SOLUTION_GENERATED,
+        subscription
+      )
+    }
+  },
+  onUnauthorized: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on(PROCESSING_EVENTS.UNAUTHORIZED, subscription)
+    return () => {
+      ipcRenderer.removeListener(PROCESSING_EVENTS.UNAUTHORIZED, subscription)
     }
   }
 } as ElectronAPI)

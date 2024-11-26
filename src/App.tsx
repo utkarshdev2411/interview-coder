@@ -4,13 +4,10 @@ import { ToastViewport } from "@radix-ui/react-toast"
 import { useEffect, useRef, useState } from "react"
 import Solutions from "./_pages/Solutions"
 import { QueryClient, QueryClientProvider } from "react-query"
-import axios from "axios"
 
 declare global {
   interface Window {
     electronAPI: {
-      toggleMainWindow: () => Promise<void>
-      takeScreenshot: () => Promise<{ path: string; preview: string }>
       getScreenshots: () => Promise<Array<{ path: string; preview: string }>>
 
       deleteScreenshot: (
@@ -26,6 +23,11 @@ declare global {
       onProcessingNoScreenshots: (callback: () => void) => () => void
       updateContentHeight: (height: number) => Promise<void>
       onResetView: (callback: () => void) => () => void
+      takeScreenshot: () => Promise<void>
+
+      onUnauthorized: (callback: () => void) => () => void
+      onInitialSolutionGenerated: (callback: (data: any) => void) => () => void
+      onProblemExtracted: (callback: (data: any) => void) => () => void
     }
   }
 }
@@ -113,60 +115,41 @@ const App: React.FC = () => {
         setView("queue")
         console.log("View reset to 'queue' via Command+R shortcut")
       }),
-      window.electronAPI.onProcessingSuccess(async (data) => {
-        if (view == "queue") {
-          console.log("the view is queue")
+      window.electronAPI.onProblemExtracted((data: any) => {
+        if (view === "queue") {
+          console.log("Problem extracted successfully")
           queryClient.invalidateQueries(["problem_statement"])
           queryClient.setQueryData(["problem_statement"], data)
+        }
+      }),
 
+      window.electronAPI.onInitialSolutionGenerated((data: any) => {
+        if (view === "queue") {
+          console.log("Initial solution generated")
           try {
-            // Step 2: Generate solutions
-            console.log("Trying to generate solutions")
-            const solutionsResponse = await axios.post(
-              "https://web-production-b2eb.up.railway.app/generate_solutions",
-              { problem_info: data },
-              {
-                timeout: 300000
-              }
-            )
-            // Extract solution code and thoughts from the new schema
-            console.log({ solutionsResponse })
-            const solutionCode = solutionsResponse.data.solution.code
-            const thoughtProcess = solutionsResponse.data.solution.thoughts
-            const timeComplexity =
-              solutionsResponse.data.solution.time_complexity
-            const spaceComplexity =
-              solutionsResponse.data.solution.space_complexity
+            // Extract solution data from the response
+            const { solution } = data
+            const { code, thoughts, time_complexity, space_complexity } =
+              solution
 
-            // Store both code and thoughts in React Query
-            queryClient.setQueryData(["solution"], solutionCode)
-            queryClient.setQueryData(["thoughts"], thoughtProcess)
-            queryClient.setQueryData(["time_complexity"], timeComplexity)
-            queryClient.setQueryData(["space_complexity"], spaceComplexity)
+            // Store in React Query
+            queryClient.setQueryData(["solution"], code)
+            queryClient.setQueryData(["thoughts"], thoughts)
+            queryClient.setQueryData(["time_complexity"], time_complexity)
+            queryClient.setQueryData(["space_complexity"], space_complexity)
           } catch (error) {
-            console.log("error generating solutions")
+            console.error("Error handling solution data:", error)
           }
         }
       }),
       window.electronAPI.onProcessingExtraSuccess((data) => {
-        console.log("solutions data", { data })
-        // Update all relevant query data
-        queryClient.setQueryData(["solution"], data.solution.code)
-        queryClient.setQueryData(["thoughts"], data.solution.thoughts)
-        queryClient.setQueryData(
-          ["time_complexity"],
-          data.solution.time_complexity
-        ) // Add this
-        queryClient.setQueryData(
-          ["space_complexity"],
-          data.solution.space_complexity
-        ) // Add this
+        const { solution } = data
+        const { code, thoughts, time_complexity, space_complexity } = solution
 
-        // Invalidate queries to trigger re-renders
-        queryClient.invalidateQueries(["solution"])
-        queryClient.invalidateQueries(["thoughts"])
-        queryClient.invalidateQueries(["time_complexity"])
-        queryClient.invalidateQueries(["space_complexity"])
+        queryClient.setQueryData(["solution"], code)
+        queryClient.setQueryData(["thoughts"], thoughts)
+        queryClient.setQueryData(["time_complexity"], time_complexity)
+        queryClient.setQueryData(["space_complexity"], space_complexity)
       })
     ]
     return () => cleanupFunctions.forEach((cleanup) => cleanup())
