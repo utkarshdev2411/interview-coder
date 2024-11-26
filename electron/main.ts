@@ -243,8 +243,8 @@ class AppState {
     this.extraScreenshotQueue = []
 
     // Clear problem info
-    this.problemInfo = null 
-    
+    this.problemInfo = null
+
     // Reset view to initial state
     this.view = "queue"
   }

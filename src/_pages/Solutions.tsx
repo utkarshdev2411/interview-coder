@@ -10,7 +10,7 @@ import {
   ToastTitle,
   ToastVariant
 } from "../components/ui/toast"
-import { ProblemStatementData } from "../types/solutions";
+import { ProblemStatementData } from "../types/solutions"
 
 interface problemStatementData extends ProblemStatementData {}
 
@@ -116,7 +116,7 @@ const ComplexitySection = ({
           <SkeletonLine width={naturalWidths[0]} />
         </div>
       </div>
-    ): (
+    ) : (
       <div className="space-y-1">
         <div className="flex items-start gap-2 text-[13px] leading-[1.4] text-gray-100">
           <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
@@ -141,8 +141,12 @@ const Solutions: React.FC = () => {
     useState<problemStatementData | null>(null)
   const [solutionData, setSolutionData] = useState<string | null>(null)
   const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
-  const [timeComplexityData, setTimeComplexityData] = useState<string | null>(null)
-  const [spaceComplexityData, setSpaceComplexityData] = useState<string | null>(null)
+  const [timeComplexityData, setTimeComplexityData] = useState<string | null>(
+    null
+  )
+  const [spaceComplexityData, setSpaceComplexityData] = useState<string | null>(
+    null
+  )
 
   const [toastOpen, setToastOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<ToastMessage>({
@@ -161,7 +165,9 @@ const Solutions: React.FC = () => {
         console.error("Error loading extra screenshots:", error)
         return []
       }
-    }
+    },
+    staleTime: Infinity, // Add this
+    cacheTime: Infinity // Add this
   })
 
   const showToast = (
@@ -223,8 +229,12 @@ const Solutions: React.FC = () => {
         // Reset solutions and complexities to previous states
         setSolutionData(queryClient.getQueryData(["solution"]) || null)
         setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
-        setTimeComplexityData(queryClient.getQueryData(["time_complexity"]) || null)
-        setSpaceComplexityData(queryClient.getQueryData(["space_complexity"]) || null)
+        setTimeComplexityData(
+          queryClient.getQueryData(["time_complexity"]) || null
+        )
+        setSpaceComplexityData(
+          queryClient.getQueryData(["space_complexity"]) || null
+        )
         console.error("Processing error:", error)
       }),
       window.electronAPI.onProcessingNoScreenshots(() => {
@@ -249,7 +259,9 @@ const Solutions: React.FC = () => {
     setSolutionData(queryClient.getQueryData(["solution"]) || null)
     setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
     setTimeComplexityData(queryClient.getQueryData(["time_complexity"]) || null)
-    setSpaceComplexityData(queryClient.getQueryData(["space_complexity"]) || null)
+    setSpaceComplexityData(
+      queryClient.getQueryData(["space_complexity"]) || null
+    )
 
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (event?.query.queryKey[0] === "problem_statement") {
@@ -264,10 +276,14 @@ const Solutions: React.FC = () => {
         setSolutionData(queryClient.getQueryData(["solution"]) || null)
       }
       if (event?.query.queryKey[0] === "time_complexity") {
-        setTimeComplexityData(queryClient.getQueryData(["time_complexity"]) || null)
+        setTimeComplexityData(
+          queryClient.getQueryData(["time_complexity"]) || null
+        )
       }
       if (event?.query.queryKey[0] === "space_complexity") {
-        setSpaceComplexityData(queryClient.getQueryData(["space_complexity"]) || null)
+        setSpaceComplexityData(
+          queryClient.getQueryData(["space_complexity"]) || null
+        )
       }
     })
     return () => unsubscribe()

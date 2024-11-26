@@ -30,7 +30,14 @@ declare global {
   }
 }
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: Infinity,
+      cacheTime: Infinity
+    }
+  }
+})
 
 const App: React.FC = () => {
   const [view, setView] = useState<"queue" | "solutions">("queue")
@@ -97,12 +104,12 @@ const App: React.FC = () => {
       window.electronAPI.onResetView(() => {
         console.log("Received 'reset-view' message from main process")
         // Remove all relevant queries
-        queryClient.removeQueries(['screenshots'])
-        queryClient.removeQueries(['solution'])
-        queryClient.removeQueries(['problem_statement'])
-        queryClient.removeQueries(['thoughts'])
-        queryClient.removeQueries(['time_complexity'])
-        queryClient.removeQueries(['space_complexity'])
+        queryClient.removeQueries(["screenshots"])
+        queryClient.removeQueries(["solution"])
+        queryClient.removeQueries(["problem_statement"])
+        queryClient.removeQueries(["thoughts"])
+        queryClient.removeQueries(["time_complexity"])
+        queryClient.removeQueries(["space_complexity"])
         setView("queue")
         console.log("View reset to 'queue' via Command+R shortcut")
       }),
@@ -126,8 +133,10 @@ const App: React.FC = () => {
             console.log({ solutionsResponse })
             const solutionCode = solutionsResponse.data.solution.code
             const thoughtProcess = solutionsResponse.data.solution.thoughts
-            const timeComplexity = solutionsResponse.data.solution.time_complexity
-            const spaceComplexity = solutionsResponse.data.solution.space_complexity
+            const timeComplexity =
+              solutionsResponse.data.solution.time_complexity
+            const spaceComplexity =
+              solutionsResponse.data.solution.space_complexity
 
             // Store both code and thoughts in React Query
             queryClient.setQueryData(["solution"], solutionCode)
@@ -136,7 +145,7 @@ const App: React.FC = () => {
             queryClient.setQueryData(["space_complexity"], spaceComplexity)
           } catch (error) {
             console.log("error generating solutions")
-          } 
+          }
         }
       }),
       window.electronAPI.onProcessingExtraSuccess((data) => {
@@ -144,9 +153,15 @@ const App: React.FC = () => {
         // Update all relevant query data
         queryClient.setQueryData(["solution"], data.solution.code)
         queryClient.setQueryData(["thoughts"], data.solution.thoughts)
-        queryClient.setQueryData(["time_complexity"], data.solution.time_complexity) // Add this
-        queryClient.setQueryData(["space_complexity"], data.solution.space_complexity) // Add this
-        
+        queryClient.setQueryData(
+          ["time_complexity"],
+          data.solution.time_complexity
+        ) // Add this
+        queryClient.setQueryData(
+          ["space_complexity"],
+          data.solution.space_complexity
+        ) // Add this
+
         // Invalidate queries to trigger re-renders
         queryClient.invalidateQueries(["solution"])
         queryClient.invalidateQueries(["thoughts"])

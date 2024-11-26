@@ -33,7 +33,9 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
         showToast("Error", "Failed to load existing screenshots", "error")
         return []
       }
-    }
+    },
+    staleTime: Infinity,
+    cacheTime: Infinity
   })
 
   const showToast = (
