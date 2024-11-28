@@ -25,9 +25,7 @@ export class AppState {
 
   // View and queue management
   private view: "queue" | "solutions" = "queue"
-  private screenshotQueue: string[] = []
-  private extraScreenshotQueue: string[] = []
-  private readonly MAX_SCREENSHOTS = 5
+
   private problemInfo: {
     problem_statement: string
     input_format: Record<string, any>
@@ -74,6 +72,8 @@ export class AppState {
 
     // Initialize WindowHelper
     this.windowHelper = new WindowHelper()
+
+    this.screenshotHelper = new ScreenshotHelper(this.view)
   }
 
   public static getInstance(): AppState {
@@ -97,11 +97,11 @@ export class AppState {
   }
 
   public getScreenshotQueue(): string[] {
-    return this.screenshotQueue
+    return this.screenshotHelper.getScreenshotQueue()
   }
 
   public getExtraScreenshotQueue(): string[] {
-    return this.extraScreenshotQueue
+    return this.screenshotHelper.getExtraScreenshotQueue()
   }
 
   // Window management methods
@@ -121,85 +121,35 @@ export class AppState {
     this.windowHelper.toggleMainWindow()
   }
   public clearQueues(): void {
-    // Clear screenshotQueue
-    this.screenshotQueue.forEach((screenshotPath) => {
-      fs.unlink(screenshotPath, (err) => {
-        if (err)
-          console.error(`Error deleting screenshot at ${screenshotPath}:`, err)
-      })
-    })
-    this.screenshotQueue = []
-
-    // Clear extraScreenshotQueue
-    this.extraScreenshotQueue.forEach((screenshotPath) => {
-      fs.unlink(screenshotPath, (err) => {
-        if (err)
-          console.error(
-            `Error deleting extra screenshot at ${screenshotPath}:`,
-            err
-          )
-      })
-    })
-    this.extraScreenshotQueue = []
+    this.screenshotHelper.clearQueues()
 
     // Clear problem info
     this.problemInfo = null
 
     // Reset view to initial state
     this.view = "queue"
+    this.screenshotHelper.setView(this.view)
   }
 
   // Screenshot management methods
   public async takeScreenshot(): Promise<string> {
     if (!this.getMainWindow()) throw new Error("No main window available")
 
-    this.hideMainWindow()
-    let screenshotPath = ""
+    const screenshotPath = await this.screenshotHelper.takeScreenshot(
+      () => this.hideMainWindow(),
+      () => this.showMainWindow()
+    )
 
-    if (this.view === "queue") {
-      screenshotPath = path.join(this.screenshotDir, `${uuidv4()}.png`)
-      await screenshot({ filename: screenshotPath })
-
-      this.screenshotQueue.push(screenshotPath)
-      if (this.screenshotQueue.length > this.MAX_SCREENSHOTS) {
-        const removedPath = this.screenshotQueue.shift()
-        if (removedPath) {
-          try {
-            await fs.promises.unlink(removedPath)
-          } catch (error) {
-            console.error("Error removing old screenshot:", error)
-          }
-        }
-      }
-    } else {
-      screenshotPath = path.join(this.extraScreenshotDir, `${uuidv4()}.png`)
-      await screenshot({ filename: screenshotPath })
-
-      this.extraScreenshotQueue.push(screenshotPath)
-      if (this.extraScreenshotQueue.length > this.MAX_SCREENSHOTS) {
-        const removedPath = this.extraScreenshotQueue.shift()
-        if (removedPath) {
-          try {
-            await fs.promises.unlink(removedPath)
-          } catch (error) {
-            console.error("Error removing old screenshot:", error)
-          }
-        }
-      }
-    }
-
-    this.showMainWindow()
     return screenshotPath
   }
-
   public async getImagePreview(filepath: string): Promise<string> {
-    try {
-      const data = await fs.promises.readFile(filepath)
-      return `data:image/png;base64,${data.toString("base64")}`
-    } catch (error) {
-      console.error("Error reading image:", error)
-      throw error
-    }
+    return this.screenshotHelper.getImagePreview(filepath)
+  }
+
+  public async deleteScreenshot(
+    path: string
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.screenshotHelper.deleteScreenshot(path)
   }
 
   // Processing methods
@@ -208,13 +158,15 @@ export class AppState {
     if (!mainWindow) return
 
     if (this.view === "queue") {
-      if (this.screenshotQueue.length === 0) {
+      const screenshotQueue = this.getScreenshotQueue()
+      if (screenshotQueue.length === 0) {
         mainWindow.webContents.send(this.PROCESSING_EVENTS.NO_SCREENSHOTS)
         return
       }
 
       mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
       this.view = "solutions" // Set it to solutions as soon as it starts
+      this.screenshotHelper.setView(this.view)
 
       // Initialize AbortController
       this.currentProcessingAbortController = new AbortController()
@@ -222,7 +174,7 @@ export class AppState {
 
       try {
         const screenshots = await Promise.all(
-          this.screenshotQueue.map(async (path) => ({
+          screenshotQueue.map(async (path) => ({
             path,
             preview: await this.getImagePreview(path)
           }))
@@ -265,7 +217,8 @@ export class AppState {
         this.currentProcessingAbortController = null
       }
     } else {
-      if (this.extraScreenshotQueue.length === 0) {
+      const extraScreenshotQueue = this.getExtraScreenshotQueue()
+      if (extraScreenshotQueue.length === 0) {
         console.log("No extra screenshots to process")
         mainWindow.webContents.send(this.PROCESSING_EVENTS.NO_SCREENSHOTS)
         return
@@ -278,7 +231,7 @@ export class AppState {
 
       try {
         const screenshots = await Promise.all(
-          [...this.screenshotQueue, ...this.extraScreenshotQueue].map(
+          [...this.getScreenshotQueue(), ...extraScreenshotQueue].map(
             async (path) => ({
               path,
               preview: await this.getImagePreview(path)
@@ -321,7 +274,6 @@ export class AppState {
       }
     }
   }
-
   private async processScreenshotsHelper(
     screenshots: Array<{ path: string }>,
     signal: AbortSignal
@@ -500,25 +452,6 @@ export class AppState {
     }
   }
 
-  public async deleteScreenshot(path: string) {
-    try {
-      await fs.promises.unlink(path)
-      if (this.view === "queue") {
-        this.screenshotQueue = this.screenshotQueue.filter(
-          (filePath) => filePath !== path
-        )
-      } else {
-        this.extraScreenshotQueue = this.extraScreenshotQueue.filter(
-          (filePath) => filePath !== path
-        )
-      }
-      return { success: true }
-    } catch (error) {
-      console.error("Error deleting file:", error)
-      return { success: false, error: error.message }
-    }
-  }
-
   // Method to cancel ongoing API requests
   public cancelOngoingRequests(): void {
     let wasCancelled = false
@@ -584,6 +517,7 @@ export class AppState {
 
       // Update the view state to 'queue'
       this.view = "queue"
+      this.screenshotHelper.setView(this.view)
 
       // Notify renderer process to switch view to 'queue'
       const mainWindow = this.getMainWindow()
@@ -616,9 +550,11 @@ export class AppState {
 async function initializeApp() {
   const appState = AppState.getInstance()
 
+  // Initialize IPC handlers before window creation
+  initializeIpcHandlers(appState)
+
   app.whenReady().then(() => {
     appState.createWindow()
-    initializeIpcHandlers(appState)
     appState.setupGlobalShortcuts()
 
     app.on("activate", () => {
@@ -632,7 +568,9 @@ async function initializeApp() {
 
   // Quit when all windows are closed, except on macOS
   app.on("window-all-closed", () => {
-    app.quit()
+    if (process.platform !== "darwin") {
+      app.quit()
+    }
   })
 
   // Unregister shortcuts when quitting
