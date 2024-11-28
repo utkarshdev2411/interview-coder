@@ -1,16 +1,15 @@
 // main.ts
 
-import { app, globalShortcut, BrowserWindow } from "electron"
+import { app, BrowserWindow } from "electron"
 import path from "node:path"
 import fs from "node:fs"
 import { v4 as uuidv4 } from "uuid"
-import screenshot from "screenshot-desktop"
 import FormData from "form-data"
 import axios from "axios"
 import { initializeIpcHandlers } from "./ipcHandlers"
 import { WindowHelper } from "./WindowHelper"
-import { ScreenshotHelper } from "ScreenshotHelper"
-
+import { ScreenshotHelper } from "./ScreenshotHelper"
+import { ShortcutsHelper } from "./shortcuts"
 const isDev = process.env.NODE_ENV === "development"
 
 const baseUrl = isDev
@@ -21,9 +20,10 @@ export class AppState {
   private static instance: AppState | null = null
 
   private windowHelper: WindowHelper
-  private screenshotHelper: ScreenshotHelper // Add ScreenshotHelper instance
+  private screenshotHelper: ScreenshotHelper
+  public shortcutsHelper: ShortcutsHelper // Add ShortcutsHelper instance
 
-  // View and queue management
+  // View management
   private view: "queue" | "solutions" = "queue"
 
   private problemInfo: {
@@ -33,10 +33,6 @@ export class AppState {
     constraints: Array<Record<string, any>>
     test_cases: Array<Record<string, any>>
   } | null = null // Allow null
-
-  // Directory paths
-  private readonly screenshotDir: string
-  private readonly extraScreenshotDir: string
 
   // Processing events
   private readonly PROCESSING_EVENTS = {
@@ -55,25 +51,14 @@ export class AppState {
   private currentExtraProcessingAbortController: AbortController | null = null
 
   private constructor() {
-    // Initialize directories
-    this.screenshotDir = path.join(app.getPath("userData"), "screenshots")
-    this.extraScreenshotDir = path.join(
-      app.getPath("userData"),
-      "extra_screenshots"
-    )
-
-    // Create directories if they don't exist
-    if (!fs.existsSync(this.screenshotDir)) {
-      fs.mkdirSync(this.screenshotDir)
-    }
-    if (!fs.existsSync(this.extraScreenshotDir)) {
-      fs.mkdirSync(this.extraScreenshotDir)
-    }
-
     // Initialize WindowHelper
     this.windowHelper = new WindowHelper()
 
+    // Initialize ScreenshotHelper
     this.screenshotHelper = new ScreenshotHelper(this.view)
+
+    // Initialize ShortcutsHelper
+    this.shortcutsHelper = new ShortcutsHelper(this)
   }
 
   public static getInstance(): AppState {
@@ -83,13 +68,18 @@ export class AppState {
     return AppState.instance
   }
 
-  // Getters
+  // Getters and Setters
   public getMainWindow(): BrowserWindow | null {
     return this.windowHelper.getMainWindow()
   }
 
   public getView(): "queue" | "solutions" {
     return this.view
+  }
+
+  public setView(view: "queue" | "solutions"): void {
+    this.view = view
+    this.screenshotHelper.setView(view)
   }
 
   public isVisible(): boolean {
@@ -120,6 +110,7 @@ export class AppState {
   public toggleMainWindow(): void {
     this.windowHelper.toggleMainWindow()
   }
+
   public clearQueues(): void {
     this.screenshotHelper.clearQueues()
 
@@ -127,8 +118,7 @@ export class AppState {
     this.problemInfo = null
 
     // Reset view to initial state
-    this.view = "queue"
-    this.screenshotHelper.setView(this.view)
+    this.setView("queue")
   }
 
   // Screenshot management methods
@@ -142,6 +132,7 @@ export class AppState {
 
     return screenshotPath
   }
+
   public async getImagePreview(filepath: string): Promise<string> {
     return this.screenshotHelper.getImagePreview(filepath)
   }
@@ -153,7 +144,8 @@ export class AppState {
   }
 
   // Processing methods
-  private async processScreenshots(): Promise<void> {
+  public async processScreenshots(): Promise<void> {
+    // Change access modifier to public if it was private
     const mainWindow = this.getMainWindow()
     if (!mainWindow) return
 
@@ -165,8 +157,7 @@ export class AppState {
       }
 
       mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
-      this.view = "solutions" // Set it to solutions as soon as it starts
-      this.screenshotHelper.setView(this.view)
+      this.setView("solutions")
 
       // Initialize AbortController
       this.currentProcessingAbortController = new AbortController()
@@ -199,7 +190,7 @@ export class AppState {
             result.error
           )
         }
-      } catch (error) {
+      } catch (error: any) {
         if (axios.isCancel(error)) {
           console.log("Processing request canceled")
           mainWindow.webContents.send(
@@ -478,72 +469,6 @@ export class AppState {
       )
     }
   }
-
-  // Global shortcuts setup
-  public setupGlobalShortcuts(): void {
-    globalShortcut.register("CommandOrControl+H", async () => {
-      const mainWindow = this.getMainWindow()
-      if (mainWindow) {
-        console.log("Taking screenshot...")
-        try {
-          const screenshotPath = await this.takeScreenshot()
-          const preview = await this.getImagePreview(screenshotPath)
-          mainWindow.webContents.send("screenshot-taken", {
-            path: screenshotPath,
-            preview
-          })
-        } catch (error) {
-          console.error("Error capturing screenshot:", error)
-        }
-      }
-    })
-
-    globalShortcut.register("CommandOrControl+Enter", async () => {
-      await this.processScreenshots()
-    })
-
-    globalShortcut.register("CommandOrControl+R", () => {
-      console.log(
-        "Command + R pressed. Canceling requests and resetting queues..."
-      )
-
-      // Cancel ongoing API requests
-      this.cancelOngoingRequests()
-
-      // Clear both screenshot queues
-      this.clearQueues()
-
-      console.log("Cleared queues.")
-
-      // Update the view state to 'queue'
-      this.view = "queue"
-      this.screenshotHelper.setView(this.view)
-
-      // Notify renderer process to switch view to 'queue'
-      const mainWindow = this.getMainWindow()
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send("reset-view")
-      }
-    })
-
-    globalShortcut.register("CommandOrControl+B", () => {
-      this.toggleMainWindow()
-      // If window exists and we're showing it, bring it to front
-      const mainWindow = this.getMainWindow()
-      if (mainWindow && !this.isVisible()) {
-        // Force the window to the front on macOS
-        if (process.platform === "darwin") {
-          mainWindow.setAlwaysOnTop(true, "normal")
-          // Reset alwaysOnTop after a brief delay
-          setTimeout(() => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.setAlwaysOnTop(true, "floating")
-            }
-          }, 100)
-        }
-      }
-    })
-  }
 }
 
 // Application initialization
@@ -555,7 +480,8 @@ async function initializeApp() {
 
   app.whenReady().then(() => {
     appState.createWindow()
-    appState.setupGlobalShortcuts()
+    // Register global shortcuts using ShortcutsHelper
+    appState.shortcutsHelper.registerGlobalShortcuts()
 
     app.on("activate", () => {
       if (!appState.getMainWindow()) {
@@ -571,11 +497,6 @@ async function initializeApp() {
     if (process.platform !== "darwin") {
       app.quit()
     }
-  })
-
-  // Unregister shortcuts when quitting
-  app.on("will-quit", () => {
-    globalShortcut.unregisterAll()
   })
 
   app.dock?.hide() // Hide dock icon (optional)
