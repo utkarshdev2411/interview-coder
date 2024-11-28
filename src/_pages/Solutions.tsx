@@ -11,6 +11,7 @@ import {
   ToastVariant
 } from "../components/ui/toast"
 import { ProblemStatementData } from "../types/solutions"
+import ExtraScreenshotsQueueHelper from "../components/Solutions/ExtraScreenshotsQueueHelper"
 
 interface problemStatementData extends ProblemStatementData {}
 
@@ -307,66 +308,7 @@ const Solutions: React.FC = () => {
               screenshots={extraScreenshots}
               onDeleteScreenshot={handleDeleteExtraScreenshot}
             />
-            <div className="pt-2 w-fit">
-              <div className="text-xs text-white/90 backdrop-blur-md bg-black/60 rounded-lg py-2 px-4 flex items-center justify-center gap-4">
-                {/* Show/Hide */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] leading-none">Show/Hide</span>
-                  <div className="flex gap-1">
-                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
-                      ⌘
-                    </button>
-                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
-                      B
-                    </button>
-                  </div>
-                </div>
-                {extraScreenshots.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] leading-none">
-                      Re-solve/Debug
-                    </span>
-                    <div className="flex gap-1">
-                      <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
-                        ⌘
-                      </button>
-                      <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
-                        ↵
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {/* Screenshot */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] leading-none">
-                    {extraScreenshots.length === 0
-                      ? "Extra screenshot"
-                      : "Screenshot"}
-                  </span>
-                  <div className="flex gap-1">
-                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
-                      ⌘
-                    </button>
-                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
-                      H
-                    </button>
-                  </div>
-                </div>
-
-                {/* Start Over */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] leading-none">Start over</span>
-                  <div className="flex gap-1">
-                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
-                      ⌘
-                    </button>
-                    <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
-                      R
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ExtraScreenshotsQueueHelper extraScreenshots={extraScreenshots} />
           </div>
         </div>
       </div>
@@ -374,39 +316,45 @@ const Solutions: React.FC = () => {
       <div className="w-full text-sm text-black backdrop-blur-md bg-black/60 rounded-md">
         <div className="rounded-lg overflow-hidden">
           <div className="px-4 py-3 space-y-4">
-            <ContentSection
-              title="Problem Statement"
-              content={problemStatementData?.problem_statement}
-              isLoading={!problemStatementData}
-            />
-            <ContentSection
-              title="Thoughts"
-              content={
-                thoughtsData && (
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      {thoughtsData.map((thought, index) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
-                          <div>{thought}</div>
+            {!solutionData && (
+              <ContentSection
+                title="Problem Statement"
+                content={problemStatementData?.problem_statement}
+                isLoading={!problemStatementData}
+              />
+            )}
+            {solutionData && (
+              <>
+                <ContentSection
+                  title="Thoughts"
+                  content={
+                    thoughtsData && (
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          {thoughtsData.map((thought, index) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
+                              <div>{thought}</div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              }
-              isLoading={!thoughtsData}
-            />
-            <SolutionSection
-              title="Solutions"
-              content={solutionData}
-              isLoading={!solutionData}
-            />
-            <ComplexitySection
-              timeComplexity={timeComplexityData}
-              spaceComplexity={spaceComplexityData}
-              isLoading={!timeComplexityData || !spaceComplexityData}
-            />
+                      </div>
+                    )
+                  }
+                  isLoading={!thoughtsData}
+                />
+                <SolutionSection
+                  title="Solutions"
+                  content={solutionData}
+                  isLoading={!solutionData}
+                />
+                <ComplexitySection
+                  timeComplexity={timeComplexityData}
+                  spaceComplexity={spaceComplexityData}
+                  isLoading={!timeComplexityData || !spaceComplexityData}
+                />
+              </>
+            )}
           </div>
         </div>
       </div>
