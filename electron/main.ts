@@ -1,5 +1,3 @@
-// main.ts
-
 import { app, BrowserWindow } from "electron"
 import { initializeIpcHandlers } from "./ipcHandlers"
 import { WindowHelper } from "./WindowHelper"
@@ -61,7 +59,6 @@ export class AppState {
     return AppState.instance
   }
 
-  // Getters and Setters
   // Getters and Setters
   public getMainWindow(): BrowserWindow | null {
     return this.windowHelper.getMainWindow()
@@ -147,6 +144,15 @@ export class AppState {
     path: string
   ): Promise<{ success: boolean; error?: string }> {
     return this.screenshotHelper.deleteScreenshot(path)
+  }
+
+  // New methods to move the window
+  public moveWindowLeft(): void {
+    this.windowHelper.moveWindowLeft()
+  }
+
+  public moveWindowRight(): void {
+    this.windowHelper.moveWindowRight()
   }
 }
 

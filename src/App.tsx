@@ -107,6 +107,7 @@ const App: React.FC = () => {
         queryClient.removeQueries(["solution"])
         queryClient.removeQueries(["problem_statement"])
         queryClient.removeQueries(["thoughts"])
+        queryClient.removeQueries(["description"])
         queryClient.removeQueries(["time_complexity"])
         queryClient.removeQueries(["space_complexity"])
         setView("queue")
@@ -120,6 +121,7 @@ const App: React.FC = () => {
         queryClient.removeQueries(["solution"])
         queryClient.removeQueries(["problem_statement"])
         queryClient.removeQueries(["thoughts"])
+        queryClient.removeQueries(["description"])
         queryClient.removeQueries(["time_complexity"])
         queryClient.removeQueries(["space_complexity"])
         setView("queue")
@@ -135,16 +137,19 @@ const App: React.FC = () => {
 
       window.electronAPI.onInitialSolutionGenerated((data: any) => {
         if (view === "queue") {
-          console.log("Initial solution generated")
+          console.log("Initial solution generated: ", data)
           try {
             // Extract solution data from the response
             const { solution } = data
-            const { code, thoughts, time_complexity, space_complexity } =
+            const { code, thoughts, description, time_complexity, space_complexity } =
               solution
+
+            console.log("Storing description in React Query: ", description)
 
             // Store in React Query
             queryClient.setQueryData(["solution"], code)
             queryClient.setQueryData(["thoughts"], thoughts)
+            queryClient.setQueryData(["description"], description)
             queryClient.setQueryData(["time_complexity"], time_complexity)
             queryClient.setQueryData(["space_complexity"], space_complexity)
           } catch (error) {
@@ -154,10 +159,11 @@ const App: React.FC = () => {
       }),
       window.electronAPI.onProcessingExtraSuccess((data) => {
         const { solution } = data
-        const { code, thoughts, time_complexity, space_complexity } = solution
+        const { code, thoughts, description, time_complexity, space_complexity } = solution
 
         queryClient.setQueryData(["solution"], code)
         queryClient.setQueryData(["thoughts"], thoughts)
+        queryClient.setQueryData(["description"], description)
         queryClient.setQueryData(["time_complexity"], time_complexity)
         queryClient.setQueryData(["space_complexity"], space_complexity)
       })

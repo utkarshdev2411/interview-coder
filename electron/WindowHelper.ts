@@ -1,4 +1,4 @@
-// core/WindowHelper.ts
+// electron/WindowHelper.ts
 
 import { BrowserWindow, screen } from "electron"
 import path from "node:path"
@@ -15,6 +15,11 @@ export class WindowHelper {
   private windowPosition: { x: number; y: number } | null = null
   private windowSize: { width: number; height: number } | null = null
 
+  // New properties for window movement
+  private screenWidth: number = 0
+  private step: number = 0
+  private currentX: number = 0
+
   constructor() {}
 
   private getScreenHeight(): number {
@@ -25,11 +30,16 @@ export class WindowHelper {
   public createWindow(): void {
     if (this.mainWindow !== null) return
 
-    const screenHeight = this.getScreenHeight()
+    const primaryDisplay = screen.getPrimaryDisplay()
+    const workArea = primaryDisplay.workAreaSize
+    this.screenWidth = workArea.width
+    this.step = Math.floor(this.screenWidth / 10) // 10 steps
+    this.currentX = 0 // Start at the left
+
     const windowSettings: Electron.BrowserWindowConstructorOptions = {
       width: 600,
-      height: screenHeight,
-      x: 0,
+      height: workArea.height,
+      x: this.currentX,
       y: 0,
       webPreferences: {
         nodeIntegration: false,
@@ -76,6 +86,7 @@ export class WindowHelper {
       if (this.mainWindow) {
         const bounds = this.mainWindow.getBounds()
         this.windowPosition = { x: bounds.x, y: bounds.y }
+        this.currentX = bounds.x // Update currentX on manual move
       }
     })
 
@@ -121,8 +132,6 @@ export class WindowHelper {
       return
     }
 
-    const focusedWindow = BrowserWindow.getFocusedWindow()
-
     if (this.windowPosition && this.windowSize) {
       this.mainWindow.setBounds({
         x: this.windowPosition.x,
@@ -134,10 +143,6 @@ export class WindowHelper {
 
     this.mainWindow.showInactive()
 
-    if (focusedWindow && !focusedWindow.isDestroyed()) {
-      focusedWindow.focus()
-    }
-
     this.isWindowVisible = true
   }
 
@@ -147,5 +152,21 @@ export class WindowHelper {
     } else {
       this.showMainWindow()
     }
+  }
+
+  // New methods for window movement
+  public moveWindowLeft(): void {
+    if (!this.mainWindow) return
+
+    this.currentX = Math.max(0, this.currentX - this.step)
+    this.mainWindow.setPosition(this.currentX, this.windowPosition?.y || 0)
+  }
+
+  public moveWindowRight(): void {
+    if (!this.mainWindow) return
+
+    const maxX = this.screenWidth - (this.windowSize?.width || 600)
+    this.currentX = Math.min(maxX, this.currentX + this.step)
+    this.mainWindow.setPosition(this.currentX, this.windowPosition?.y || 0)
   }
 }

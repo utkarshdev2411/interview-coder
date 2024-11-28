@@ -42,6 +42,33 @@ const ContentSection = ({
   </div>
 )
 
+const DescriptionSection = ({
+  title,
+  content,
+  isLoading
+}: {
+  title: string
+  content: React.ReactNode
+  isLoading: boolean
+}) => (
+  <div className="space-y-2">
+    <h2 className="text-[13px] font-medium text-white tracking-wide">
+      {title}
+    </h2>
+    {isLoading ? (
+      <div className="mt-4 flex">
+        <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
+          Loading {title.toLowerCase()}...
+        </p>
+      </div>
+    ) : (
+      <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px]">
+        {content}
+      </div>
+    )}
+  </div>
+)
+
 const SolutionSection = ({
   title,
   content,
@@ -125,6 +152,7 @@ const Solutions: React.FC = () => {
     useState<ProblemStatementData | null>(null)
   const [solutionData, setSolutionData] = useState<string | null>(null)
   const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
+  const [descriptionData, setDescriptionData] = useState<string[] | null>(null)
   const [timeComplexityData, setTimeComplexityData] = useState<string | null>(
     null
   )
@@ -200,6 +228,7 @@ const Solutions: React.FC = () => {
         // Every time processing starts, reset relevant states
         setSolutionData(null)
         setThoughtsData(null)
+        setDescriptionData(null)
         setTimeComplexityData(null)
         setSpaceComplexityData(null)
       }),
@@ -213,6 +242,9 @@ const Solutions: React.FC = () => {
         // Reset solutions and complexities to previous states
         setSolutionData(queryClient.getQueryData(["solution"]) || null)
         setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
+        setDescriptionData(
+          queryClient.getQueryData(["description"]) || null
+        )
         setTimeComplexityData(
           queryClient.getQueryData(["time_complexity"]) || null
         )
@@ -242,6 +274,7 @@ const Solutions: React.FC = () => {
     )
     setSolutionData(queryClient.getQueryData(["solution"]) || null)
     setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
+    setDescriptionData(queryClient.getQueryData(["description"]) || null)
     setTimeComplexityData(queryClient.getQueryData(["time_complexity"]) || null)
     setSpaceComplexityData(
       queryClient.getQueryData(["space_complexity"]) || null
@@ -258,6 +291,9 @@ const Solutions: React.FC = () => {
       }
       if (event?.query.queryKey[0] === "solution") {
         setSolutionData(queryClient.getQueryData(["solution"]) || null)
+      }
+      if (event?.query.queryKey[0] === "description") {
+        setDescriptionData(queryClient.getQueryData(["description"]) || null)
       }
       if (event?.query.queryKey[0] === "time_complexity") {
         setTimeComplexityData(
@@ -338,6 +374,11 @@ const Solutions: React.FC = () => {
                     )
                   }
                   isLoading={!thoughtsData}
+                />
+                <DescriptionSection
+                  title="Description"
+                  content={descriptionData}
+                  isLoading={!descriptionData}
                 />
                 <SolutionSection
                   title="Solutions"
