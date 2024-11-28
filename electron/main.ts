@@ -6,6 +6,15 @@ import screenshot from "screenshot-desktop"
 import FormData from "form-data"
 import axios from "axios"
 
+const isDev = process.env.NODE_ENV === "development"
+
+const baseUrl = isDev
+  ? "http://localhost:8000"
+  : "https://web-production-b2eb.up.railway.app"
+
+const startUrl = isDev
+  ? "http://localhost:5173"
+  : `file://${path.join(__dirname, "../dist/index.html")}`
 class AppState {
   private static instance: AppState | null = null
 
@@ -98,7 +107,7 @@ class AppState {
 
     const screenHeight = this.getScreenHeight()
     const windowSettings = {
-      width: 600,
+      width: isDev ? 800 : 600,
       height: screenHeight,
       x: 0,
       y: 0,
@@ -118,17 +127,15 @@ class AppState {
     }
 
     this.mainWindow = new BrowserWindow(windowSettings)
+    this.mainWindow.setContentProtection(true)
+    this.mainWindow.setHiddenInMissionControl(true)
+
     if (process.platform === "darwin") {
       this.mainWindow.setVisibleOnAllWorkspaces(true, {
         visibleOnFullScreen: true
       })
       this.mainWindow.setAlwaysOnTop(true, "floating")
     }
-
-    const isDev = process.env.NODE_ENV === "development"
-    const startUrl = isDev
-      ? "http://localhost:5173"
-      : `file://${path.join(__dirname, "../dist/index.html")}`
 
     this.mainWindow.loadURL(startUrl).catch((err) => {
       console.error("Failed to load URL:", err)
@@ -439,7 +446,7 @@ class AppState {
       try {
         // First API call - extract problem
         const problemResponse = await axios.post(
-          "http://localhost:8000/extract_problem",
+          `${baseUrl}/extract_problem`,
           formData,
           {
             headers: {
@@ -513,7 +520,7 @@ class AppState {
 
       try {
         const response = await axios.post(
-          "http://localhost:8000/generate_solutions",
+          `${baseUrl}/generate_solutions`,
           { problem_info: this.problemInfo },
           {
             timeout: 300000,
@@ -567,7 +574,7 @@ class AppState {
       console.log(formData)
       try {
         const response = await axios.post(
-          "http://localhost:8000/debug_solutions",
+          `${baseUrl}/debug_solutions`,
           formData,
           {
             headers: {
