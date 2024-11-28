@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from "react-query"
 import { useEffect, useState } from "react"
-import { CodeBlock, dracula } from "react-code-blocks"
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
+import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism"
+
 import SolutionsHelper from "../components/Solutions/SolutionsHelper"
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import {
@@ -12,22 +14,6 @@ import {
 } from "../components/ui/toast"
 import { ProblemStatementData } from "../types/solutions"
 import ExtraScreenshotsQueueHelper from "../components/Solutions/ExtraScreenshotsQueueHelper"
-
-interface problemStatementData extends ProblemStatementData {}
-
-// Create an array of widths that look natural for text
-const naturalWidths = [
-  "w-[230px]", // Shorter sentence
-  "w-[340px]", // Medium sentence
-  "w-[0px]" // Long sentence
-]
-
-const SkeletonLine = ({ width = naturalWidths[2] }: { width?: string }) => (
-  <div
-    className={`h-3 bg-gray-300/50 rounded-sm animate-pulse ${width}`}
-    style={{ maxWidth: "500px" }}
-  />
-)
 
 const ContentSection = ({
   title,
@@ -43,10 +29,10 @@ const ContentSection = ({
       {title}
     </h2>
     {isLoading ? (
-      <div className="space-y-1.5">
-        <SkeletonLine width={naturalWidths[2]} /> {/* Long line */}
-        <SkeletonLine width={naturalWidths[1]} /> {/* Medium line */}
-        <SkeletonLine width={naturalWidths[0]} /> {/* Shorter line */}
+      <div className="mt-4 flex">
+        <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
+          Extracting problem statement...
+        </p>
       </div>
     ) : (
       <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px]">
@@ -71,23 +57,26 @@ const SolutionSection = ({
     </h2>
     {isLoading ? (
       <div className="space-y-1.5">
-        <SkeletonLine width={naturalWidths[2]} />
-        <SkeletonLine width={naturalWidths[1]} />
-        <SkeletonLine width={naturalWidths[1]} />
-        <SkeletonLine width={naturalWidths[0]} />
+        <div className="mt-4 flex">
+          <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
+            Loading solutions...
+          </p>
+        </div>
       </div>
     ) : (
-      <div className="">
-        <CodeBlock
-          text={content as string}
+      <div className="overflow-auto">
+        <SyntaxHighlighter
           language="python"
-          theme={dracula}
+          style={dracula}
           customStyle={{
             maxWidth: "550px",
-            overflow: "auto",
-            whiteSpace: "pre-wrap"
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word"
           }}
-        />
+          wrapLongLines={true}
+        >
+          {content as string}
+        </SyntaxHighlighter>
       </div>
     )}
   </div>
@@ -107,15 +96,9 @@ const ComplexitySection = ({
       Complexity
     </h2>
     {isLoading ? (
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
-          <SkeletonLine width={naturalWidths[0]} />
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-gray-700/50 animate-pulse shrink-0" />
-          <SkeletonLine width={naturalWidths[0]} />
-        </div>
+      <div className="mt-4 flex">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-100"></div>
+        <p className="text-sm text-gray-100">Calculating complexity...</p>
       </div>
     ) : (
       <div className="space-y-1">
@@ -139,7 +122,7 @@ const ComplexitySection = ({
 const Solutions: React.FC = () => {
   const queryClient = useQueryClient()
   const [problemStatementData, setProblemStatementData] =
-    useState<problemStatementData | null>(null)
+    useState<ProblemStatementData | null>(null)
   const [solutionData, setSolutionData] = useState<string | null>(null)
   const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
   const [timeComplexityData, setTimeComplexityData] = useState<string | null>(
@@ -301,27 +284,40 @@ const Solutions: React.FC = () => {
         <ToastTitle>{toastMessage.title}</ToastTitle>
         <ToastDescription>{toastMessage.description}</ToastDescription>
       </Toast>
-      <div className="bg-transparent w-fit">
-        <div className="pb-3">
-          <div className="space-y-3 w-fit">
-            <ScreenshotQueue
-              screenshots={extraScreenshots}
-              onDeleteScreenshot={handleDeleteExtraScreenshot}
-            />
-            <ExtraScreenshotsQueueHelper extraScreenshots={extraScreenshots} />
+      {solutionData && (
+        <div className="bg-transparent w-fit">
+          <div className="pb-3">
+            <div className="space-y-3 w-fit">
+              <ScreenshotQueue
+                screenshots={extraScreenshots}
+                onDeleteScreenshot={handleDeleteExtraScreenshot}
+              />
+              <ExtraScreenshotsQueueHelper
+                extraScreenshots={extraScreenshots}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="w-full text-sm text-black backdrop-blur-md bg-black/60 rounded-md">
         <div className="rounded-lg overflow-hidden">
           <div className="px-4 py-3 space-y-4">
             {!solutionData && (
-              <ContentSection
-                title="Problem Statement"
-                content={problemStatementData?.problem_statement}
-                isLoading={!problemStatementData}
-              />
+              <>
+                <ContentSection
+                  title="Problem Statement"
+                  content={problemStatementData?.problem_statement}
+                  isLoading={!problemStatementData}
+                />
+                {problemStatementData && (
+                  <div className="mt-4 flex">
+                    <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
+                      Generating solutions...
+                    </p>
+                  </div>
+                )}
+              </>
             )}
             {solutionData && (
               <>

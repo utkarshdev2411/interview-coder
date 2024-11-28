@@ -1,19 +1,24 @@
-// tailwind.config.js
+export const content = ["./src/**/*.{js,jsx,ts,tsx}", "./public/index.html"]
+
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
       fontFamily: {
-        // using inter as the default for sans
         sans: ["Inter", "system-ui", "sans-serif"]
       },
       animation: {
         in: "in 0.2s ease-out",
         out: "out 0.2s ease-in",
         pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        shimmer: "shimmer 2s linear infinite"
+        shimmer: "shimmer 2s linear infinite",
+        "text-gradient-wave": "textGradientWave 2s infinite ease-in-out"
       },
       keyframes: {
+        textGradientWave: {
+          "0%": { backgroundPosition: "0% 50%" },
+          "100%": { backgroundPosition: "200% 50%" }
+        },
         shimmer: {
           "0%": {
             backgroundPosition: "200% 0"
