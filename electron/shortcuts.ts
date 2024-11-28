@@ -1,5 +1,3 @@
-// shortcuts.ts
-
 import { globalShortcut, app } from "electron"
 import { AppState } from "./main" // Adjust the import path if necessary
 
@@ -53,6 +51,17 @@ export class ShortcutsHelper {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send("reset-view")
       }
+    })
+
+    // New shortcuts for moving the window
+    globalShortcut.register("CommandOrControl+Left", () => {
+      console.log("Command/Ctrl + Left pressed. Moving window left.")
+      this.appState.moveWindowLeft()
+    })
+
+    globalShortcut.register("CommandOrControl+Right", () => {
+      console.log("Command/Ctrl + Right pressed. Moving window right.")
+      this.appState.moveWindowRight()
     })
 
     globalShortcut.register("CommandOrControl+B", () => {

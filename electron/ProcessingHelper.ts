@@ -276,6 +276,8 @@ export class ProcessingHelper {
           throw new Error("No response data received")
         }
 
+        console.log("Received response: ", response)
+
         return { success: true, data: response.data }
       } catch (error: any) {
         const mainWindow = this.appState.getMainWindow()
