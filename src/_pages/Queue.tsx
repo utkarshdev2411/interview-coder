@@ -35,7 +35,9 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
       }
     },
     staleTime: Infinity,
-    cacheTime: Infinity
+    cacheTime: Infinity,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true
   })
 
   const showToast = (

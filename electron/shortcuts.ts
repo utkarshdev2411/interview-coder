@@ -1,7 +1,7 @@
 // shortcuts.ts
 
 import { globalShortcut, app } from "electron"
-import { AppState } from "./main"
+import { AppState } from "./main" // Adjust the import path if necessary
 
 export class ShortcutsHelper {
   private appState: AppState
@@ -29,7 +29,7 @@ export class ShortcutsHelper {
     })
 
     globalShortcut.register("CommandOrControl+Enter", async () => {
-      await this.appState.processScreenshots()
+      await this.appState.processingHelper.processScreenshots()
     })
 
     globalShortcut.register("CommandOrControl+R", () => {
@@ -38,7 +38,7 @@ export class ShortcutsHelper {
       )
 
       // Cancel ongoing API requests
-      this.appState.cancelOngoingRequests()
+      this.appState.processingHelper.cancelOngoingRequests()
 
       // Clear both screenshot queues
       this.appState.clearQueues()

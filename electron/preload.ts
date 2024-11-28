@@ -31,7 +31,7 @@ interface ElectronAPI {
   takeScreenshot: () => Promise<void>
 }
 
-const PROCESSING_EVENTS = {
+export const PROCESSING_EVENTS = {
   START: "processing-start",
   SUCCESS: "processing-success",
   ERROR: "processing-error",

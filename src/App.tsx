@@ -102,10 +102,20 @@ const App: React.FC = () => {
         setView("solutions")
         console.log("starting processing")
       }),
+      window.electronAPI.onUnauthorized(() => {
+        queryClient.removeQueries(["screenshots"])
+        queryClient.removeQueries(["solution"])
+        queryClient.removeQueries(["problem_statement"])
+        queryClient.removeQueries(["thoughts"])
+        queryClient.removeQueries(["time_complexity"])
+        queryClient.removeQueries(["space_complexity"])
+        setView("queue")
+        console.log("Unauthorized")
+      }),
       // Update this reset handler
       window.electronAPI.onResetView(() => {
         console.log("Received 'reset-view' message from main process")
-        // Remove all relevant queries
+
         queryClient.removeQueries(["screenshots"])
         queryClient.removeQueries(["solution"])
         queryClient.removeQueries(["problem_statement"])

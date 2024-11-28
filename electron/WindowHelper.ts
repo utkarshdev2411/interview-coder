@@ -11,7 +11,7 @@ const startUrl = isDev
 
 export class WindowHelper {
   private mainWindow: BrowserWindow | null = null
-  private isWindowVisible: boolean = true
+  private isWindowVisible: boolean = false
   private windowPosition: { x: number; y: number } | null = null
   private windowSize: { width: number; height: number } | null = null
 
@@ -27,7 +27,7 @@ export class WindowHelper {
 
     const screenHeight = this.getScreenHeight()
     const windowSettings: Electron.BrowserWindowConstructorOptions = {
-      width: isDev ? 800 : 600,
+      width: 600,
       height: screenHeight,
       x: 0,
       y: 0,
@@ -49,9 +49,6 @@ export class WindowHelper {
     this.mainWindow = new BrowserWindow(windowSettings)
     this.mainWindow.setContentProtection(true)
     this.mainWindow.setHiddenInMissionControl(true)
-    if (isDev) {
-      this.mainWindow.webContents.openDevTools()
-    }
 
     if (process.platform === "darwin") {
       this.mainWindow.setVisibleOnAllWorkspaces(true, {
@@ -69,6 +66,7 @@ export class WindowHelper {
     this.windowSize = { width: bounds.width, height: bounds.height }
 
     this.setupWindowListeners()
+    this.isWindowVisible = true
   }
 
   private setupWindowListeners(): void {
@@ -105,13 +103,8 @@ export class WindowHelper {
   }
 
   public hideMainWindow(): void {
-    if (!this.mainWindow) {
-      this.createWindow()
-      return
-    }
-
-    if (this.mainWindow.isDestroyed()) {
-      this.createWindow()
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      console.warn("Main window does not exist or is destroyed.")
       return
     }
 
@@ -123,13 +116,8 @@ export class WindowHelper {
   }
 
   public showMainWindow(): void {
-    if (!this.mainWindow) {
-      this.createWindow()
-      return
-    }
-
-    if (this.mainWindow.isDestroyed()) {
-      this.createWindow()
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      console.warn("Main window does not exist or is destroyed.")
       return
     }
 
