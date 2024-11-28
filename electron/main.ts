@@ -1,10 +1,15 @@
-import { app, BrowserWindow, screen, ipcMain, globalShortcut } from "electron"
+// main.ts
+
+import { app, globalShortcut, BrowserWindow } from "electron"
 import path from "node:path"
 import fs from "node:fs"
 import { v4 as uuidv4 } from "uuid"
 import screenshot from "screenshot-desktop"
 import FormData from "form-data"
 import axios from "axios"
+import { initializeIpcHandlers } from "./ipcHandlers"
+import { WindowHelper } from "./WindowHelper"
+import { ScreenshotHelper } from "ScreenshotHelper"
 
 const isDev = process.env.NODE_ENV === "development"
 
@@ -12,17 +17,11 @@ const baseUrl = isDev
   ? "http://localhost:8000"
   : "https://web-production-b2eb.up.railway.app"
 
-const startUrl = isDev
-  ? "http://localhost:5173"
-  : `file://${path.join(__dirname, "../dist/index.html")}`
-class AppState {
+export class AppState {
   private static instance: AppState | null = null
 
-  // Window management
-  private mainWindow: BrowserWindow | null = null
-  private isWindowVisible: boolean = true
-  private windowPosition: { x: number; y: number } | null = null
-  private windowSize: { width: number; height: number } | null = null
+  private windowHelper: WindowHelper
+  private screenshotHelper: ScreenshotHelper // Add ScreenshotHelper instance
 
   // View and queue management
   private view: "queue" | "solutions" = "queue"
@@ -35,7 +34,7 @@ class AppState {
     output_format: Record<string, any>
     constraints: Array<Record<string, any>>
     test_cases: Array<Record<string, any>>
-  }
+  } | null = null // Allow null
 
   // Directory paths
   private readonly screenshotDir: string
@@ -73,7 +72,8 @@ class AppState {
       fs.mkdirSync(this.extraScreenshotDir)
     }
 
-    this.initializeIpcHandlers()
+    // Initialize WindowHelper
+    this.windowHelper = new WindowHelper()
   }
 
   public static getInstance(): AppState {
@@ -85,7 +85,7 @@ class AppState {
 
   // Getters
   public getMainWindow(): BrowserWindow | null {
-    return this.mainWindow
+    return this.windowHelper.getMainWindow()
   }
 
   public getView(): "queue" | "solutions" {
@@ -93,143 +93,33 @@ class AppState {
   }
 
   public isVisible(): boolean {
-    return this.isWindowVisible
+    return this.windowHelper.isVisible()
   }
 
-  private getScreenHeight(): number {
-    const primaryDisplay = screen.getPrimaryDisplay()
-    return primaryDisplay.workAreaSize.height
+  public getScreenshotQueue(): string[] {
+    return this.screenshotQueue
+  }
+
+  public getExtraScreenshotQueue(): string[] {
+    return this.extraScreenshotQueue
   }
 
   // Window management methods
   public createWindow(): void {
-    if (this.mainWindow !== null) return
-
-    const screenHeight = this.getScreenHeight()
-    const windowSettings = {
-      width: isDev ? 800 : 600,
-      height: screenHeight,
-      x: 0,
-      y: 0,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true,
-        preload: path.join(__dirname, "preload.js")
-      },
-      show: true,
-      alwaysOnTop: true,
-      frame: false,
-      transparent: true,
-      fullscreenable: false,
-      hasShadow: false,
-      backgroundColor: "#00000000",
-      focusable: true
-    }
-
-    this.mainWindow = new BrowserWindow(windowSettings)
-    this.mainWindow.setContentProtection(true)
-    this.mainWindow.setHiddenInMissionControl(true)
-
-    if (process.platform === "darwin") {
-      this.mainWindow.setVisibleOnAllWorkspaces(true, {
-        visibleOnFullScreen: true
-      })
-      this.mainWindow.setAlwaysOnTop(true, "floating")
-    }
-
-    this.mainWindow.loadURL(startUrl).catch((err) => {
-      console.error("Failed to load URL:", err)
-    })
-    const bounds = this.mainWindow.getBounds()
-    this.windowPosition = { x: bounds.x, y: bounds.y }
-    this.windowSize = { width: bounds.width, height: bounds.height }
-
-    this.setupWindowListeners()
+    this.windowHelper.createWindow()
   }
 
-  private setupWindowListeners(): void {
-    if (!this.mainWindow) return
-
-    this.mainWindow.on("move", () => {
-      if (this.mainWindow) {
-        const bounds = this.mainWindow.getBounds()
-        this.windowPosition = { x: bounds.x, y: bounds.y }
-      }
-    })
-
-    this.mainWindow.on("resize", () => {
-      if (this.mainWindow) {
-        const bounds = this.mainWindow.getBounds()
-        this.windowSize = { width: bounds.width, height: bounds.height }
-      }
-    })
-
-    this.mainWindow.on("closed", () => {
-      this.mainWindow = null
-      this.isWindowVisible = false
-      this.windowPosition = null
-      this.windowSize = null
-    })
-  }
-
-  // Window visibility methods
   public hideMainWindow(): void {
-    if (!this.mainWindow) {
-      this.createWindow()
-      return
-    }
-
-    if (this.mainWindow.isDestroyed()) {
-      this.createWindow()
-      return
-    }
-
-    const bounds = this.mainWindow.getBounds()
-    this.windowPosition = { x: bounds.x, y: bounds.y }
-    this.windowSize = { width: bounds.width, height: bounds.height }
-    this.mainWindow.hide()
-    this.isWindowVisible = false
+    this.windowHelper.hideMainWindow()
   }
 
   public showMainWindow(): void {
-    if (!this.mainWindow) {
-      this.createWindow()
-      return
-    }
-
-    if (this.mainWindow.isDestroyed()) {
-      this.createWindow()
-      return
-    }
-
-    const focusedWindow = BrowserWindow.getFocusedWindow()
-
-    if (this.windowPosition && this.windowSize) {
-      this.mainWindow.setBounds({
-        x: this.windowPosition.x,
-        y: this.windowPosition.y,
-        width: this.windowSize.width,
-        height: this.windowSize.height
-      })
-    }
-
-    this.mainWindow.showInactive()
-
-    if (focusedWindow && !focusedWindow.isDestroyed()) {
-      focusedWindow.focus()
-    }
-
-    this.isWindowVisible = true
+    this.windowHelper.showMainWindow()
   }
 
   public toggleMainWindow(): void {
-    if (this.isWindowVisible) {
-      this.hideMainWindow()
-    } else {
-      this.showMainWindow()
-    }
+    this.windowHelper.toggleMainWindow()
   }
-
   public clearQueues(): void {
     // Clear screenshotQueue
     this.screenshotQueue.forEach((screenshotPath) => {
@@ -260,8 +150,8 @@ class AppState {
   }
 
   // Screenshot management methods
-  private async takeScreenshot(): Promise<string> {
-    if (!this.mainWindow) throw new Error("No main window available")
+  public async takeScreenshot(): Promise<string> {
+    if (!this.getMainWindow()) throw new Error("No main window available")
 
     this.hideMainWindow()
     let screenshotPath = ""
@@ -302,7 +192,7 @@ class AppState {
     return screenshotPath
   }
 
-  private async getImagePreview(filepath: string): Promise<string> {
+  public async getImagePreview(filepath: string): Promise<string> {
     try {
       const data = await fs.promises.readFile(filepath)
       return `data:image/png;base64,${data.toString("base64")}`
@@ -314,16 +204,18 @@ class AppState {
 
   // Processing methods
   private async processScreenshots(): Promise<void> {
-    if (!this.mainWindow) return
+    const mainWindow = this.getMainWindow()
+    if (!mainWindow) return
 
     if (this.view === "queue") {
       if (this.screenshotQueue.length === 0) {
-        this.mainWindow.webContents.send(this.PROCESSING_EVENTS.NO_SCREENSHOTS)
+        mainWindow.webContents.send(this.PROCESSING_EVENTS.NO_SCREENSHOTS)
         return
       }
 
-      this.mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
-      this.view = "solutions" //set it to solutions as soon as it starts
+      mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
+      this.view = "solutions" // Set it to solutions as soon as it starts
+
       // Initialize AbortController
       this.currentProcessingAbortController = new AbortController()
       const { signal } = this.currentProcessingAbortController
@@ -336,7 +228,7 @@ class AppState {
           }))
         )
 
-        console.log("regular screenshots")
+        console.log("Regular screenshots")
         screenshots.forEach((screenshot: any) => {
           console.log(screenshot.path)
         })
@@ -345,12 +237,12 @@ class AppState {
 
         if (result.success) {
           console.log("Processing success:", result.data)
-          this.mainWindow.webContents.send(
+          mainWindow.webContents.send(
             this.PROCESSING_EVENTS.SUCCESS,
             result.data
           )
         } else {
-          this.mainWindow.webContents.send(
+          mainWindow.webContents.send(
             this.PROCESSING_EVENTS.ERROR,
             result.error
           )
@@ -358,13 +250,13 @@ class AppState {
       } catch (error) {
         if (axios.isCancel(error)) {
           console.log("Processing request canceled")
-          this.mainWindow.webContents.send(
+          mainWindow.webContents.send(
             this.PROCESSING_EVENTS.ERROR,
             "Processing was canceled by the user."
           )
         } else {
           console.error("Processing error:", error)
-          this.mainWindow.webContents.send(
+          mainWindow.webContents.send(
             this.PROCESSING_EVENTS.ERROR,
             error.message
           )
@@ -373,14 +265,12 @@ class AppState {
         this.currentProcessingAbortController = null
       }
     } else {
-      // Existing logic for 'solutions' view
-
       if (this.extraScreenshotQueue.length === 0) {
         console.log("No extra screenshots to process")
-        this.mainWindow.webContents.send(this.PROCESSING_EVENTS.NO_SCREENSHOTS)
+        mainWindow.webContents.send(this.PROCESSING_EVENTS.NO_SCREENSHOTS)
         return
       }
-      this.mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
+      mainWindow.webContents.send(this.PROCESSING_EVENTS.START)
 
       // Initialize AbortController
       this.currentExtraProcessingAbortController = new AbortController()
@@ -402,12 +292,12 @@ class AppState {
         )
 
         if (result.success) {
-          this.mainWindow.webContents.send(
+          mainWindow.webContents.send(
             this.PROCESSING_EVENTS.EXTRA_SUCCESS,
             result.data
           )
         } else {
-          this.mainWindow.webContents.send(
+          mainWindow.webContents.send(
             this.PROCESSING_EVENTS.ERROR,
             result.error
           )
@@ -415,13 +305,13 @@ class AppState {
       } catch (error) {
         if (axios.isCancel(error)) {
           console.log("Extra processing request canceled")
-          this.mainWindow.webContents.send(
+          mainWindow.webContents.send(
             this.PROCESSING_EVENTS.ERROR,
             "Extra processing was canceled by the user."
           )
         } else {
           console.error("Processing error:", error)
-          this.mainWindow.webContents.send(
+          mainWindow.webContents.send(
             this.PROCESSING_EVENTS.ERROR,
             error.message
           )
@@ -469,18 +359,18 @@ class AppState {
         }
 
         // Send first success event
-        if (this.mainWindow) {
-          this.mainWindow.webContents.send(
+        if (this.getMainWindow()) {
+          this.getMainWindow().webContents.send(
             this.PROCESSING_EVENTS.PROBLEM_EXTRACTED,
             problemResponse.data
           )
         }
 
         // Second API call - generate solutions
-        if (this.mainWindow) {
+        if (this.getMainWindow()) {
           const solutionsResult = await this.generateSolutionsHelper()
           if (solutionsResult.success) {
-            this.mainWindow.webContents.send(
+            this.getMainWindow().webContents.send(
               this.PROCESSING_EVENTS.INITIAL_SOLUTION_GENERATED,
               solutionsResult.data
             )
@@ -494,8 +384,8 @@ class AppState {
         return { success: true, data: problemResponse.data }
       } catch (error: any) {
         if (axios.isAxiosError(error) && error.response?.status === 401) {
-          if (this.mainWindow) {
-            this.mainWindow.webContents.send(
+          if (this.getMainWindow()) {
+            this.getMainWindow().webContents.send(
               this.PROCESSING_EVENTS.UNAUTHORIZED,
               "Authentication required"
             )
@@ -536,8 +426,8 @@ class AppState {
         return { success: true, data: response.data }
       } catch (error: any) {
         if (axios.isAxiosError(error) && error.response?.status === 401) {
-          if (this.mainWindow) {
-            this.mainWindow.webContents.send(
+          if (this.getMainWindow()) {
+            this.getMainWindow().webContents.send(
               this.PROCESSING_EVENTS.UNAUTHORIZED,
               "Authentication required"
             )
@@ -594,8 +484,8 @@ class AppState {
         return { success: true, data: response.data }
       } catch (error: any) {
         if (axios.isAxiosError(error) && error.response?.status === 401) {
-          if (this.mainWindow) {
-            this.mainWindow.webContents.send(
+          if (this.getMainWindow()) {
+            this.getMainWindow().webContents.send(
               this.PROCESSING_EVENTS.UNAUTHORIZED,
               "Authentication required"
             )
@@ -629,75 +519,6 @@ class AppState {
     }
   }
 
-  // IPC Handlers setup
-  private initializeIpcHandlers(): void {
-    ipcMain.handle("update-content-height", async (event, height: number) => {
-      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-        const [width] = this.mainWindow.getSize()
-        this.mainWindow.setSize(width, Math.ceil(height))
-      }
-    })
-
-    ipcMain.handle("delete-screenshot", async (event, path: string) => {
-      return this.deleteScreenshot(path)
-    })
-
-    ipcMain.handle("take-screenshot", async () => {
-      try {
-        const screenshotPath = await this.takeScreenshot()
-        const preview = await this.getImagePreview(screenshotPath)
-        return { path: screenshotPath, preview }
-      } catch (error) {
-        console.error("Error taking screenshot:", error)
-        throw error
-      }
-    })
-
-    ipcMain.handle("get-screenshots", async () => {
-      console.log({
-        view: this.view
-      })
-      try {
-        let previews = []
-        if (this.view === "queue") {
-          previews = await Promise.all(
-            this.screenshotQueue.map(async (path) => ({
-              path,
-              preview: await this.getImagePreview(path)
-            }))
-          )
-        } else {
-          previews = await Promise.all(
-            this.extraScreenshotQueue.map(async (path) => ({
-              path,
-              preview: await this.getImagePreview(path)
-            }))
-          )
-        }
-        previews.forEach((preview: any) => console.log(preview.path))
-        return previews
-      } catch (error) {
-        console.error("Error getting screenshots:", error)
-        throw error
-      }
-    })
-
-    ipcMain.handle("toggle-window", async () => {
-      this.toggleMainWindow()
-    })
-
-    ipcMain.handle("reset-queues", async () => {
-      try {
-        this.clearQueues()
-        console.log("Screenshot queues have been cleared.")
-        return { success: true }
-      } catch (error: any) {
-        console.error("Error resetting queues:", error)
-        return { success: false, error: error.message }
-      }
-    })
-  }
-
   // Method to cancel ongoing API requests
   public cancelOngoingRequests(): void {
     let wasCancelled = false
@@ -716,8 +537,9 @@ class AppState {
       wasCancelled = true
     }
 
-    if (wasCancelled && this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send(
+    const mainWindow = this.getMainWindow()
+    if (wasCancelled && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(
         this.PROCESSING_EVENTS.ERROR,
         "Processing was canceled by the user."
       )
@@ -727,12 +549,13 @@ class AppState {
   // Global shortcuts setup
   public setupGlobalShortcuts(): void {
     globalShortcut.register("CommandOrControl+H", async () => {
-      if (this.mainWindow) {
+      const mainWindow = this.getMainWindow()
+      if (mainWindow) {
         console.log("Taking screenshot...")
         try {
           const screenshotPath = await this.takeScreenshot()
           const preview = await this.getImagePreview(screenshotPath)
-          this.mainWindow.webContents.send("screenshot-taken", {
+          mainWindow.webContents.send("screenshot-taken", {
             path: screenshotPath,
             preview
           })
@@ -763,22 +586,24 @@ class AppState {
       this.view = "queue"
 
       // Notify renderer process to switch view to 'queue'
-      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-        this.mainWindow.webContents.send("reset-view")
+      const mainWindow = this.getMainWindow()
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("reset-view")
       }
     })
 
     globalShortcut.register("CommandOrControl+B", () => {
       this.toggleMainWindow()
       // If window exists and we're showing it, bring it to front
-      if (this.mainWindow && !this.isWindowVisible) {
+      const mainWindow = this.getMainWindow()
+      if (mainWindow && !this.isVisible()) {
         // Force the window to the front on macOS
         if (process.platform === "darwin") {
-          this.mainWindow.setAlwaysOnTop(true, "normal")
+          mainWindow.setAlwaysOnTop(true, "normal")
           // Reset alwaysOnTop after a brief delay
           setTimeout(() => {
-            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-              this.mainWindow.setAlwaysOnTop(true, "floating")
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.setAlwaysOnTop(true, "floating")
             }
           }, 100)
         }
@@ -793,6 +618,7 @@ async function initializeApp() {
 
   app.whenReady().then(() => {
     appState.createWindow()
+    initializeIpcHandlers(appState)
     appState.setupGlobalShortcuts()
 
     app.on("activate", () => {
@@ -806,9 +632,7 @@ async function initializeApp() {
 
   // Quit when all windows are closed, except on macOS
   app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") {
-      app.quit()
-    }
+    app.quit()
   })
 
   // Unregister shortcuts when quitting
