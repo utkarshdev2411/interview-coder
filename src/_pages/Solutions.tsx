@@ -242,9 +242,7 @@ const Solutions: React.FC = () => {
         // Reset solutions and complexities to previous states
         setSolutionData(queryClient.getQueryData(["solution"]) || null)
         setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
-        setDescriptionData(
-          queryClient.getQueryData(["description"]) || null
-        )
+        setDescriptionData(queryClient.getQueryData(["description"]) || null)
         setTimeComplexityData(
           queryClient.getQueryData(["time_complexity"]) || null
         )
@@ -381,7 +379,7 @@ const Solutions: React.FC = () => {
                   isLoading={!descriptionData}
                 />
                 <SolutionSection
-                  title="Solutions"
+                  title="Solution"
                   content={solutionData}
                   isLoading={!solutionData}
                 />
@@ -395,7 +393,8 @@ const Solutions: React.FC = () => {
           </div>
         </div>
       </div>
-      <SolutionsHelper />
+      {/* if solutions are there, then content should show above*/}
+      <SolutionsHelper aboveContent={!!solutionData} />
     </div>
   )
 }

@@ -5,11 +5,21 @@ import FormData from "form-data"
 import axios from "axios"
 import { ScreenshotHelper } from "./ScreenshotHelper" // Adjust the import path if necessary
 import { AppState } from "./main" // Adjust the import path if necessary
+import dotenv from "dotenv"
+
+dotenv.config()
+
 const isDev = process.env.NODE_ENV === "development"
 
 const baseUrl = isDev
   ? "http://localhost:8000"
   : "https://web-production-b2eb.up.railway.app"
+
+const isDevTest = process.env.IS_DEV_TEST === "true"
+
+const MOCK_API_WAIT_TIME = Number(process.env.MOCK_API_WAIT_TIME) || 500 // in milliseconds
+
+console.log({ isDev, isDevTest, MOCK_API_WAIT_TIME })
 
 export class ProcessingHelper {
   private appState: AppState
@@ -165,20 +175,79 @@ export class ProcessingHelper {
       })
 
       try {
-        // First API call - extract problem
-        const problemResponse = await axios.post(
-          `${baseUrl}/extract_problem`,
-          formData,
-          {
-            headers: {
-              ...formData.getHeaders()
-            },
-            timeout: 300000,
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity,
-            signal
+        let problemResponse
+
+        if (!isDevTest) {
+          // First API call - extract problem
+          problemResponse = await axios.post(
+            `${baseUrl}/extract_problem`,
+            formData,
+            {
+              headers: {
+                ...formData.getHeaders()
+              },
+              timeout: 300000,
+              maxContentLength: Infinity,
+              maxBodyLength: Infinity,
+              signal
+            }
+          )
+        } else {
+          // Simulate API delay
+          console.log(
+            `Simulating extract_problem API delay of ${MOCK_API_WAIT_TIME}ms`
+          )
+          await new Promise((resolve) =>
+            setTimeout(resolve, MOCK_API_WAIT_TIME)
+          )
+
+          // Use constants matching the expected output format
+          problemResponse = {
+            data: {
+              problem_statement: "Sample problem statement",
+              input_format: {
+                description: "Sample input description",
+                parameters: [
+                  {
+                    name: "n",
+                    type: "number",
+                    subtype: "integer"
+                  },
+                  {
+                    name: "arr",
+                    type: "array",
+                    subtype: "integer"
+                  }
+                ]
+              },
+              output_format: {
+                description: "Sample output description",
+                type: "number",
+                subtype: "integer"
+              },
+              constraints: [
+                {
+                  description: "1 ≤ n ≤ 1000",
+                  parameter: "n",
+                  range: {
+                    min: 1,
+                    max: 1000
+                  }
+                }
+              ],
+              test_cases: [
+                {
+                  input: {
+                    args: [5, [1, 2, 3, 4, 5]]
+                  },
+                  output: {
+                    result: 15
+                  }
+                }
+              ]
+            }
           }
-        )
+        }
 
         // Store problem info in AppState
         this.appState.setProblemInfo({
@@ -261,16 +330,43 @@ export class ProcessingHelper {
       }
 
       try {
-        const response = await axios.post(
-          `${baseUrl}/generate_solutions`,
-          { problem_info: problemInfo },
-          {
-            timeout: 300000,
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity,
-            signal
+        let response
+
+        if (!isDevTest) {
+          response = await axios.post(
+            `${baseUrl}/generate_solutions`,
+            { problem_info: problemInfo },
+            {
+              timeout: 300000,
+              maxContentLength: Infinity,
+              maxBodyLength: Infinity,
+              signal
+            }
+          )
+        } else {
+          // Simulate API delay
+          console.log(
+            `Simulating generate_solutions API delay of ${MOCK_API_WAIT_TIME}ms`
+          )
+          await new Promise((resolve) =>
+            setTimeout(resolve, MOCK_API_WAIT_TIME)
+          )
+          response = {
+            data: {
+              solution: {
+                thoughts: [
+                  "First thought about the problem",
+                  "Second thought about the problem"
+                ],
+                description: "Brief description of the implemented algorithm",
+                code: "// Sample code implementation\nfunction solve() { }",
+                time_complexity:
+                  "O(n) because we iterate through the array once",
+                space_complexity: "O(1) because we use constant extra space"
+              }
+            }
           }
-        )
+        }
 
         if (!response || !response.data) {
           throw new Error("No response data received")
@@ -338,10 +434,10 @@ export class ProcessingHelper {
       formData.append("problem_info", JSON.stringify(problemInfo))
 
       try {
-        const response = await axios.post(
-          `${baseUrl}/debug_solutions`,
-          formData,
-          {
+        let response
+
+        if (!isDevTest) {
+          response = await axios.post(`${baseUrl}/debug_solutions`, formData, {
             headers: {
               ...formData.getHeaders()
             },
@@ -349,8 +445,26 @@ export class ProcessingHelper {
             maxContentLength: Infinity,
             maxBodyLength: Infinity,
             signal
+          })
+        } else {
+          // Simulate API delay
+          console.log(
+            `Simulating debug_solutions API delay of ${MOCK_API_WAIT_TIME}ms`
+          )
+          await new Promise((resolve) =>
+            setTimeout(resolve, MOCK_API_WAIT_TIME)
+          )
+
+          // Use constants matching the expected output format
+          response = {
+            data: {
+              debug_info: {
+                message: "Sample debug information",
+                details: "Details about the debugging process"
+              }
+            }
           }
-        )
+        }
 
         if (!response || !response.data) {
           throw new Error("No response data received")

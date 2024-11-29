@@ -141,8 +141,13 @@ const App: React.FC = () => {
           try {
             // Extract solution data from the response
             const { solution } = data
-            const { code, thoughts, description, time_complexity, space_complexity } =
-              solution
+            const {
+              code,
+              thoughts,
+              description,
+              time_complexity,
+              space_complexity
+            } = solution
 
             console.log("Storing description in React Query: ", description)
 
@@ -159,7 +164,13 @@ const App: React.FC = () => {
       }),
       window.electronAPI.onProcessingExtraSuccess((data) => {
         const { solution } = data
-        const { code, thoughts, description, time_complexity, space_complexity } = solution
+        const {
+          code,
+          thoughts,
+          description,
+          time_complexity,
+          space_complexity
+        } = solution
 
         queryClient.setQueryData(["solution"], code)
         queryClient.setQueryData(["thoughts"], thoughts)
@@ -174,7 +185,7 @@ const App: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="min-h-0 overflow-hidden "
+      className="min-h-0 "
       style={{ width: "600px" }} // Match your electron window width
     >
       <QueryClientProvider client={queryClient}>
