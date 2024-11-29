@@ -70,15 +70,19 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
 
   useEffect(() => {
     // Height update logic
-    const updateHeight = () => {
+    const updateDimensions = () => {
       const contentHeight = document.body.scrollHeight
-      window.electronAPI.updateContentHeight(contentHeight)
+      const contentWidth = document.body.scrollWidth
+      window.electronAPI.updateContentDimensions({
+        width: contentWidth,
+        height: contentHeight
+      })
     }
 
     // Initialize resize observer
-    const resizeObserver = new ResizeObserver(updateHeight)
+    const resizeObserver = new ResizeObserver(updateDimensions)
     resizeObserver.observe(document.body)
-    updateHeight()
+    updateDimensions()
 
     // Set up event listeners
     const cleanupFunctions = [

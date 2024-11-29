@@ -211,15 +211,20 @@ const Solutions: React.FC = () => {
 
   useEffect(() => {
     // Height update logic
-    const updateHeight = () => {
+    const updateDimensions = () => {
+      const contentWidth = document.body.scrollWidth
       const contentHeight = document.body.scrollHeight
-      window.electronAPI.updateContentHeight(contentHeight)
+
+      window.electronAPI.updateContentDimensions({
+        width: contentWidth,
+        height: contentHeight
+      })
     }
 
     // Initialize resize observer
-    const resizeObserver = new ResizeObserver(updateHeight)
+    const resizeObserver = new ResizeObserver(updateDimensions)
     resizeObserver.observe(document.body)
-    updateHeight()
+    updateDimensions()
 
     // Set up event listeners
     const cleanupFunctions = [

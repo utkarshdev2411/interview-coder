@@ -8,6 +8,10 @@ import { QueryClient, QueryClientProvider } from "react-query"
 declare global {
   interface Window {
     electronAPI: {
+      updateContentDimensions: (dimensions: {
+        width: number
+        height: number
+      }) => Promise<void>
       getScreenshots: () => Promise<Array<{ path: string; preview: string }>>
 
       deleteScreenshot: (
@@ -21,7 +25,6 @@ declare global {
       onProcessingExtraSuccess: (callback: (data: any) => void) => () => void
       onProcessingError: (callback: (error: string) => void) => () => void
       onProcessingNoScreenshots: (callback: () => void) => () => void
-      updateContentHeight: (height: number) => Promise<void>
       onResetView: (callback: () => void) => () => void
       takeScreenshot: () => Promise<void>
 
@@ -66,7 +69,8 @@ const App: React.FC = () => {
     const updateHeight = () => {
       if (!containerRef.current) return
       const height = containerRef.current.scrollHeight
-      window.electronAPI?.updateContentHeight(height)
+      const width = containerRef.current.scrollWidth
+      window.electronAPI?.updateContentDimensions({ width, height })
     }
 
     const resizeObserver = new ResizeObserver(() => {

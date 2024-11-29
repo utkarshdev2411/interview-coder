@@ -2,10 +2,10 @@ import { contextBridge, ipcRenderer } from "electron"
 
 // Types for the exposed Electron API
 interface ElectronAPI {
-  updateContentHeight: (
+  updateContentDimensions: (dimensions: {
+    width: number
     height: number
-  ) => Promise<{ success: boolean; error?: string }>
-
+  }) => Promise<void>
   getScreenshots: () => Promise<{
     success: boolean
     previews?: Array<{ path: string; preview: string }> | null
@@ -44,8 +44,8 @@ export const PROCESSING_EVENTS = {
 
 // Expose the Electron API to the renderer process
 contextBridge.exposeInMainWorld("electronAPI", {
-  updateContentHeight: (height: number) =>
-    ipcRenderer.invoke("update-content-height", height),
+  updateContentDimensions: (dimensions: { width: number; height: number }) =>
+    ipcRenderer.invoke("update-content-dimensions", dimensions),
   takeScreenshot: () => ipcRenderer.invoke("take-screenshot"),
   getScreenshots: () => ipcRenderer.invoke("get-screenshots"),
   deleteScreenshot: (path: string) =>

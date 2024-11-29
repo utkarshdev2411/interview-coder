@@ -5,8 +5,6 @@ import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
 import { ProcessingHelper } from "./ProcessingHelper"
 
-const isDev = process.env.NODE_ENV === "development"
-
 export class AppState {
   private static instance: AppState | null = null
 
@@ -112,6 +110,10 @@ export class AppState {
 
   public toggleMainWindow(): void {
     this.windowHelper.toggleMainWindow()
+  }
+
+  public setWindowDimensions(width: number, height: number): void {
+    this.windowHelper.setWindowDimensions(width, height)
   }
 
   public clearQueues(): void {

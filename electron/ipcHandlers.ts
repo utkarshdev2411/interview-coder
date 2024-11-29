@@ -4,13 +4,14 @@ import { ipcMain } from "electron"
 import { AppState } from "./main"
 
 export function initializeIpcHandlers(appState: AppState): void {
-  ipcMain.handle("update-content-height", async (event, height: number) => {
-    const mainWindow = appState.getMainWindow()
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      const [width] = mainWindow.getSize()
-      mainWindow.setSize(width, Math.ceil(height))
+  ipcMain.handle(
+    "update-content-dimensions",
+    async (event, { width, height }: { width: number; height: number }) => {
+      if (width && height) {
+        appState.setWindowDimensions(width, height)
+      }
     }
-  })
+  )
 
   ipcMain.handle("delete-screenshot", async (event, path: string) => {
     return appState.deleteScreenshot(path)

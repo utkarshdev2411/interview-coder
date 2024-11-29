@@ -22,9 +22,36 @@ export class WindowHelper {
 
   constructor() {}
 
-  private getScreenHeight(): number {
+  public setWindowDimensions(width: number, height: number): void {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) return
+
+    // Get current window position
+    const [currentX, currentY] = this.mainWindow.getPosition()
+
+    // Get screen dimensions
     const primaryDisplay = screen.getPrimaryDisplay()
-    return primaryDisplay.workAreaSize.height
+    const workArea = primaryDisplay.workAreaSize
+
+    // Ensure width doesn't exceed screen width and height is reasonable
+    const newWidth = Math.min(Math.max(width, 300), workArea.width) // minimum 300px width
+    const newHeight = Math.ceil(height)
+
+    // Center the window horizontally if it would go off screen
+    const maxX = workArea.width - newWidth
+    const newX = Math.min(Math.max(currentX, 0), maxX)
+
+    // Update window bounds
+    this.mainWindow.setBounds({
+      x: newX,
+      y: currentY,
+      width: newWidth,
+      height: newHeight
+    })
+
+    // Update internal state
+    this.windowPosition = { x: newX, y: currentY }
+    this.windowSize = { width: newWidth, height: newHeight }
+    this.currentX = newX
   }
 
   public createWindow(): void {
