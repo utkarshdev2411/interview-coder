@@ -110,10 +110,6 @@ const App: React.FC = () => {
         queryClient.removeQueries(["screenshots"])
         queryClient.removeQueries(["solution"])
         queryClient.removeQueries(["problem_statement"])
-        queryClient.removeQueries(["thoughts"])
-        queryClient.removeQueries(["description"])
-        queryClient.removeQueries(["time_complexity"])
-        queryClient.removeQueries(["space_complexity"])
         setView("queue")
         console.log("Unauthorized")
       }),
@@ -124,10 +120,6 @@ const App: React.FC = () => {
         queryClient.removeQueries(["screenshots"])
         queryClient.removeQueries(["solution"])
         queryClient.removeQueries(["problem_statement"])
-        queryClient.removeQueries(["thoughts"])
-        queryClient.removeQueries(["description"])
-        queryClient.removeQueries(["time_complexity"])
-        queryClient.removeQueries(["space_complexity"])
         setView("queue")
         console.log("View reset to 'queue' via Command+R shortcut")
       }),
@@ -137,50 +129,6 @@ const App: React.FC = () => {
           queryClient.invalidateQueries(["problem_statement"])
           queryClient.setQueryData(["problem_statement"], data)
         }
-      }),
-
-      window.electronAPI.onInitialSolutionGenerated((data: any) => {
-        if (view === "queue") {
-          console.log("Initial solution generated: ", data)
-          try {
-            // Extract solution data from the response
-            const { solution } = data
-            const {
-              code,
-              thoughts,
-              description,
-              time_complexity,
-              space_complexity
-            } = solution
-
-            console.log("Storing description in React Query: ", description)
-
-            // Store in React Query
-            queryClient.setQueryData(["solution"], code)
-            queryClient.setQueryData(["thoughts"], thoughts)
-            queryClient.setQueryData(["description"], description)
-            queryClient.setQueryData(["time_complexity"], time_complexity)
-            queryClient.setQueryData(["space_complexity"], space_complexity)
-          } catch (error) {
-            console.error("Error handling solution data:", error)
-          }
-        }
-      }),
-      window.electronAPI.onProcessingExtraSuccess((data) => {
-        const { solution } = data
-        const {
-          code,
-          thoughts,
-          description,
-          time_complexity,
-          space_complexity
-        } = solution
-
-        queryClient.setQueryData(["solution"], code)
-        queryClient.setQueryData(["thoughts"], thoughts)
-        queryClient.setQueryData(["description"], description)
-        queryClient.setQueryData(["time_complexity"], time_complexity)
-        queryClient.setQueryData(["space_complexity"], space_complexity)
       })
     ]
     return () => cleanupFunctions.forEach((cleanup) => cleanup())
@@ -190,7 +138,7 @@ const App: React.FC = () => {
     <div
       ref={containerRef}
       className="min-h-0 "
-      style={{ width: "600px" }} // Match your electron window width
+      style={{ width: "680px" }} // Match your electron window width
     >
       <QueryClientProvider client={queryClient}>
         <ToastProvider>

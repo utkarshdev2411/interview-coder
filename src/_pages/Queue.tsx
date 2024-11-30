@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useQuery } from "react-query"
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import {
@@ -21,6 +21,10 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
     description: "",
     variant: "neutral"
   })
+
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false)
+  const [tooltipHeight, setTooltipHeight] = useState(0)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const { data: screenshots = [], refetch } = useQuery({
     queryKey: ["screenshots"],
@@ -71,17 +75,24 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
   useEffect(() => {
     // Height update logic
     const updateDimensions = () => {
-      const contentHeight = document.body.scrollHeight
-      const contentWidth = document.body.scrollWidth
-      window.electronAPI.updateContentDimensions({
-        width: contentWidth,
-        height: contentHeight
-      })
+      if (contentRef.current) {
+        let contentHeight = contentRef.current.scrollHeight
+        const contentWidth = contentRef.current.scrollWidth
+        if (isTooltipVisible) {
+          contentHeight += tooltipHeight
+        }
+        window.electronAPI.updateContentDimensions({
+          width: contentWidth,
+          height: contentHeight
+        })
+      }
     }
 
     // Initialize resize observer
     const resizeObserver = new ResizeObserver(updateDimensions)
-    resizeObserver.observe(document.body)
+    if (contentRef.current) {
+      resizeObserver.observe(contentRef.current)
+    }
     updateDimensions()
 
     // Set up event listeners
@@ -101,7 +112,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
           "There was an error processing your screenshots.",
           "error"
         )
-        setView("queue") //usually, processing start would set the view to solutions, but if it errors out then it should revert to queue
+        setView("queue") // Revert to queue if processing fails
         console.error("Processing error:", error)
       }),
       window.electronAPI.onProcessingNoScreenshots(() => {
@@ -117,10 +128,15 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
       resizeObserver.disconnect()
       cleanupFunctions.forEach((cleanup) => cleanup())
     }
-  }, []) // No more dependency on Toggle View
+  }, [isTooltipVisible, tooltipHeight])
+
+  const handleTooltipVisibilityChange = (visible: boolean, height: number) => {
+    setIsTooltipVisible(visible)
+    setTooltipHeight(height)
+  }
 
   return (
-    <div className={`bg-transparent w-fit`}>
+    <div ref={contentRef} className={`bg-transparent w-fit`}>
       <div className="px-4 py-3">
         <Toast
           open={toastOpen}
@@ -170,7 +186,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
                 </div>
               </div>
 
-              {/* Re-solve/Debug - Conditional */}
+              {/* Solve Command */}
               {screenshots.length > 0 && (
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] leading-none">Solve</span>
@@ -186,7 +202,9 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
               )}
               <div className="mx-2 h-4 w-px bg-white/20" />
 
-              <QueueHelper />
+              <QueueHelper
+                onTooltipVisibilityChange={handleTooltipVisibilityChange}
+              />
             </div>
           </div>
         </div>

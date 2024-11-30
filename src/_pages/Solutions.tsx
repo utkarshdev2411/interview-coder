@@ -1,9 +1,9 @@
+// Solutions.tsx
+import React, { useState, useEffect, useRef } from "react"
 import { useQuery, useQueryClient } from "react-query"
-import { useEffect, useState } from "react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism"
 
-import SolutionsHelper from "../components/Solutions/SolutionsHelper"
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import {
   Toast,
@@ -32,33 +32,6 @@ const ContentSection = ({
       <div className="mt-4 flex">
         <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
           Extracting problem statement...
-        </p>
-      </div>
-    ) : (
-      <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px]">
-        {content}
-      </div>
-    )}
-  </div>
-)
-
-const DescriptionSection = ({
-  title,
-  content,
-  isLoading
-}: {
-  title: string
-  content: React.ReactNode
-  isLoading: boolean
-}) => (
-  <div className="space-y-2">
-    <h2 className="text-[13px] font-medium text-white tracking-wide">
-      {title}
-    </h2>
-    {isLoading ? (
-      <div className="mt-4 flex">
-        <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
-          Loading {title.toLowerCase()}...
         </p>
       </div>
     ) : (
@@ -148,11 +121,12 @@ const ComplexitySection = ({
 
 const Solutions: React.FC = () => {
   const queryClient = useQueryClient()
+  const contentRef = useRef<HTMLDivElement>(null)
+
   const [problemStatementData, setProblemStatementData] =
     useState<ProblemStatementData | null>(null)
   const [solutionData, setSolutionData] = useState<string | null>(null)
   const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
-  const [descriptionData, setDescriptionData] = useState<string[] | null>(null)
   const [timeComplexityData, setTimeComplexityData] = useState<string | null>(
     null
   )
@@ -166,6 +140,9 @@ const Solutions: React.FC = () => {
     description: "",
     variant: "neutral"
   })
+
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false)
+  const [tooltipHeight, setTooltipHeight] = useState(0)
 
   const { data: extraScreenshots = [], refetch } = useQuery({
     queryKey: ["extras"],
@@ -212,18 +189,24 @@ const Solutions: React.FC = () => {
   useEffect(() => {
     // Height update logic
     const updateDimensions = () => {
-      const contentWidth = document.body.scrollWidth
-      const contentHeight = document.body.scrollHeight
-
-      window.electronAPI.updateContentDimensions({
-        width: contentWidth,
-        height: contentHeight
-      })
+      if (contentRef.current) {
+        let contentHeight = contentRef.current.scrollHeight
+        const contentWidth = contentRef.current.scrollWidth
+        if (isTooltipVisible) {
+          contentHeight += tooltipHeight
+        }
+        window.electronAPI.updateContentDimensions({
+          width: contentWidth,
+          height: contentHeight
+        })
+      }
     }
 
     // Initialize resize observer
     const resizeObserver = new ResizeObserver(updateDimensions)
-    resizeObserver.observe(document.body)
+    if (contentRef.current) {
+      resizeObserver.observe(contentRef.current)
+    }
     updateDimensions()
 
     // Set up event listeners
@@ -233,7 +216,6 @@ const Solutions: React.FC = () => {
         // Every time processing starts, reset relevant states
         setSolutionData(null)
         setThoughtsData(null)
-        setDescriptionData(null)
         setTimeComplexityData(null)
         setSpaceComplexityData(null)
       }),
@@ -245,16 +227,46 @@ const Solutions: React.FC = () => {
           "error"
         )
         // Reset solutions and complexities to previous states
-        setSolutionData(queryClient.getQueryData(["solution"]) || null)
-        setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
-        setDescriptionData(queryClient.getQueryData(["description"]) || null)
-        setTimeComplexityData(
-          queryClient.getQueryData(["time_complexity"]) || null
-        )
-        setSpaceComplexityData(
-          queryClient.getQueryData(["space_complexity"]) || null
-        )
+        const solution = queryClient.getQueryData(["solution"]) as {
+          code: string
+          thoughts: string[]
+          time_complexity: string
+          space_complexity: string
+        } | null
+        setSolutionData(solution?.code || null)
+        setThoughtsData(solution?.thoughts || null)
+        setTimeComplexityData(solution?.time_complexity || null)
+        setSpaceComplexityData(solution?.space_complexity || null)
         console.error("Processing error:", error)
+      }),
+      //when it actually works, then we'll set things to the new solution
+      window.electronAPI.onInitialSolutionGenerated((data) => {
+        queryClient.setQueryData(["solution"], data.solution)
+        const solution = queryClient.getQueryData(["solution"]) as {
+          code: string
+          thoughts: string[]
+          time_complexity: string
+          space_complexity: string
+        } | null
+        console.log({ solution })
+        setSolutionData(data.solution.code || null)
+        setThoughtsData(data.solution.thoughts || null)
+        setTimeComplexityData(data.solution.time_complexity || null)
+        setSpaceComplexityData(data.solution.space_complexity || null)
+      }),
+      //when the debug works, we'll update everything with this new data.
+      window.electronAPI.onProcessingExtraSuccess((data) => {
+        queryClient.setQueryData(["solution"], data.solution)
+        const solution = queryClient.getQueryData(["solution"]) as {
+          code: string
+          thoughts: string[]
+          time_complexity: string
+          space_complexity: string
+        } | null
+        setSolutionData(solution?.code || null)
+        setThoughtsData(solution?.thoughts || null)
+        setTimeComplexityData(solution?.time_complexity || null)
+        setSpaceComplexityData(solution?.space_complexity || null)
       }),
       window.electronAPI.onProcessingNoScreenshots(() => {
         showToast(
@@ -269,19 +281,13 @@ const Solutions: React.FC = () => {
       resizeObserver.disconnect()
       cleanupFunctions.forEach((cleanup) => cleanup())
     }
-  }, []) // No dependency on Toggle View
+  }, [isTooltipVisible, tooltipHeight])
 
   useEffect(() => {
     setProblemStatementData(
       queryClient.getQueryData(["problem_statement"]) || null
     )
     setSolutionData(queryClient.getQueryData(["solution"]) || null)
-    setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
-    setDescriptionData(queryClient.getQueryData(["description"]) || null)
-    setTimeComplexityData(queryClient.getQueryData(["time_complexity"]) || null)
-    setSpaceComplexityData(
-      queryClient.getQueryData(["space_complexity"]) || null
-    )
 
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (event?.query.queryKey[0] === "problem_statement") {
@@ -293,27 +299,37 @@ const Solutions: React.FC = () => {
         setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
       }
       if (event?.query.queryKey[0] === "solution") {
-        setSolutionData(queryClient.getQueryData(["solution"]) || null)
-      }
-      if (event?.query.queryKey[0] === "description") {
-        setDescriptionData(queryClient.getQueryData(["description"]) || null)
-      }
-      if (event?.query.queryKey[0] === "time_complexity") {
-        setTimeComplexityData(
-          queryClient.getQueryData(["time_complexity"]) || null
-        )
-      }
-      if (event?.query.queryKey[0] === "space_complexity") {
-        setSpaceComplexityData(
-          queryClient.getQueryData(["space_complexity"]) || null
-        )
+        const solution = queryClient.getQueryData(["solution"]) as {
+          code: string
+          thoughts: string[]
+          time_complexity: string
+          space_complexity: string
+        } | null
+
+        if (solution) {
+          const { code, thoughts, time_complexity, space_complexity } = solution
+          setSolutionData(code)
+          setThoughtsData(thoughts)
+          setTimeComplexityData(time_complexity)
+          setSpaceComplexityData(space_complexity)
+        } else {
+          setSolutionData(null)
+          setThoughtsData(null)
+          setTimeComplexityData(null)
+          setSpaceComplexityData(null)
+        }
       }
     })
     return () => unsubscribe()
   }, [queryClient])
 
+  const handleTooltipVisibilityChange = (visible: boolean, height: number) => {
+    setIsTooltipVisible(visible)
+    setTooltipHeight(height)
+  }
+
   return (
-    <div className="relative space-y-3">
+    <div ref={contentRef} className="relative space-y-3 pb-8">
       <Toast
         open={toastOpen}
         onOpenChange={setToastOpen}
@@ -323,6 +339,8 @@ const Solutions: React.FC = () => {
         <ToastTitle>{toastMessage.title}</ToastTitle>
         <ToastDescription>{toastMessage.description}</ToastDescription>
       </Toast>
+
+      {/* Conditionally render the screenshot queue if solutionData is available */}
       {solutionData && (
         <div className="bg-transparent w-fit">
           <div className="pb-3">
@@ -331,15 +349,19 @@ const Solutions: React.FC = () => {
                 screenshots={extraScreenshots}
                 onDeleteScreenshot={handleDeleteExtraScreenshot}
               />
-              <ExtraScreenshotsQueueHelper
-                extraScreenshots={extraScreenshots}
-              />
             </div>
           </div>
         </div>
       )}
 
-      <div className="w-full text-sm text-black backdrop-blur-md bg-black/60 rounded-md">
+      {/* Navbar of commands with the SolutionsHelper */}
+      <ExtraScreenshotsQueueHelper
+        extraScreenshots={extraScreenshots}
+        onTooltipVisibilityChange={handleTooltipVisibilityChange}
+      />
+
+      {/* Main Content */}
+      <div className="w-full text-sm text-black  bg-black/60 rounded-md">
         <div className="rounded-lg overflow-hidden">
           <div className="px-4 py-3 space-y-4">
             {!solutionData && (
@@ -378,11 +400,7 @@ const Solutions: React.FC = () => {
                   }
                   isLoading={!thoughtsData}
                 />
-                <DescriptionSection
-                  title="Description"
-                  content={descriptionData}
-                  isLoading={!descriptionData}
-                />
+
                 <SolutionSection
                   title="Solution"
                   content={solutionData}
@@ -398,8 +416,6 @@ const Solutions: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* if solutions are there, then content should show above*/}
-      <SolutionsHelper aboveContent={!!solutionData} />
     </div>
   )
 }
