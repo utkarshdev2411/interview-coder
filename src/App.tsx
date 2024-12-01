@@ -152,7 +152,7 @@ const App: React.FC = () => {
             {view === "queue" ? (
               <Queue setView={setView} />
             ) : view === "solutions" ? (
-              <Solutions />
+              <Solutions setView={setView} />
             ) : (
               <Debug setView={setView} />
             )}

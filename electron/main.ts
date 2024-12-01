@@ -111,6 +111,12 @@ export class AppState {
   }
 
   public toggleMainWindow(): void {
+    console.log(
+      "Screenshots: ",
+      this.screenshotHelper.getScreenshotQueue().length,
+      "Extra screenshots: ",
+      this.screenshotHelper.getExtraScreenshotQueue().length
+    )
     this.windowHelper.toggleMainWindow()
   }
 
@@ -157,6 +163,12 @@ export class AppState {
 
   public moveWindowRight(): void {
     this.windowHelper.moveWindowRight()
+  }
+  public moveWindowDown(): void {
+    this.windowHelper.moveWindowDown()
+  }
+  public moveWindowUp(): void {
+    this.windowHelper.moveWindowUp()
   }
 }
 

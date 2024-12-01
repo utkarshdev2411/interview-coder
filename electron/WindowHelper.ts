@@ -17,8 +17,10 @@ export class WindowHelper {
 
   // New properties for window movement
   private screenWidth: number = 0
+  private screenHeight: number = 0
   private step: number = 0
   private currentX: number = 0
+  private currentY: number = 0
 
   constructor() {}
 
@@ -60,6 +62,8 @@ export class WindowHelper {
     const primaryDisplay = screen.getPrimaryDisplay()
     const workArea = primaryDisplay.workAreaSize
     this.screenWidth = workArea.width
+    this.screenHeight = workArea.height
+
     this.step = Math.floor(this.screenWidth / 10) // 10 steps
     this.currentX = 0 // Start at the left
 
@@ -196,5 +200,17 @@ export class WindowHelper {
     const maxX = this.screenWidth - (this.windowSize?.width || 600)
     this.currentX = Math.min(maxX, this.currentX + this.step)
     this.mainWindow.setPosition(this.currentX, this.windowPosition?.y || 0)
+  }
+
+  public moveWindowDown(): void {
+    if (!this.mainWindow) return
+    const maxY = this.screenHeight - this.windowSize?.height
+    this.currentY = Math.min(maxY, this.currentY + this.step)
+    this.mainWindow.setPosition(this.windowPosition?.x, this.currentY || 0)
+  }
+  public moveWindowUp(): void {
+    if (!this.mainWindow) return
+    this.currentY = Math.max(0, this.currentY - this.step)
+    this.mainWindow.setPosition(this.windowPosition?.x, this.currentY || 0)
   }
 }

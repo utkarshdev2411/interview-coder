@@ -174,7 +174,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
                 <span className="text-[11px] leading-none">
                   {screenshots.length === 0
                     ? "Take first screenshot"
-                    : "Screenshot (up to 5)"}
+                    : "Screenshot"}
                 </span>
                 <div className="flex gap-1">
                   <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">

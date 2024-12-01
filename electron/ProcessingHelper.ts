@@ -9,12 +9,14 @@ import dotenv from "dotenv"
 
 dotenv.config()
 
+console.log({ NODE_ENV: process.env.NODE_ENV })
 const isDev = process.env.NODE_ENV === "development"
 
 const baseUrl = isDev
   ? "http://localhost:8000"
   : "https://web-production-b2eb.up.railway.app"
 
+console.log({ baseUrl })
 const isDevTest = process.env.IS_DEV_TEST === "true"
 
 const MOCK_API_WAIT_TIME = Number(process.env.MOCK_API_WAIT_TIME) || 2000 // in milliseconds
@@ -180,7 +182,7 @@ export class ProcessingHelper {
         if (!isDevTest) {
           // First API call - extract problem
           problemResponse = await axios.post(
-            `${baseUrl}/extract_problem`,
+            `${baseUrl}/extract_problem_temp`,
             formData,
             {
               headers: {
@@ -334,7 +336,7 @@ export class ProcessingHelper {
 
         if (!isDevTest) {
           response = await axios.post(
-            `${baseUrl}/generate_solutions`,
+            `${baseUrl}/generate_solutions_temp`,
             { problem_info: problemInfo },
             {
               timeout: 300000,
@@ -436,15 +438,19 @@ export class ProcessingHelper {
         let response
 
         if (!isDevTest) {
-          response = await axios.post(`${baseUrl}/debug_solutions`, formData, {
-            headers: {
-              ...formData.getHeaders()
-            },
-            timeout: 300000,
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity,
-            signal
-          })
+          response = await axios.post(
+            `${baseUrl}/debug_solutions_temp`,
+            formData,
+            {
+              headers: {
+                ...formData.getHeaders()
+              },
+              timeout: 300000,
+              maxContentLength: Infinity,
+              maxBodyLength: Infinity,
+              signal
+            }
+          )
         } else {
           // Simulate API delay
           console.log(

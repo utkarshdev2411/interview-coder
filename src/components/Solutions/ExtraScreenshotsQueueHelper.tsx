@@ -45,6 +45,23 @@ const ExtraScreenshotsQueueHelper: React.FC<
               </button>
             </div>
           </div>
+
+          {/* Screenshot */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] leading-none">
+              {extraScreenshots.length === 0
+                ? "Screenshot your code to debug"
+                : "Screenshot"}
+            </span>
+            <div className="flex gap-1">
+              <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                ⌘
+              </button>
+              <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                H
+              </button>
+            </div>
+          </div>
           {extraScreenshots.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-[11px] leading-none">Re-solve/Debug</span>
@@ -58,22 +75,6 @@ const ExtraScreenshotsQueueHelper: React.FC<
               </div>
             </div>
           )}
-          {/* Screenshot */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] leading-none">
-              {extraScreenshots.length === 0
-                ? "Extra screenshot"
-                : "Screenshot"}
-            </span>
-            <div className="flex gap-1">
-              <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
-                ⌘
-              </button>
-              <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
-                H
-              </button>
-            </div>
-          </div>
 
           {/* Start Over */}
           <div className="flex items-center gap-2">
@@ -184,6 +185,27 @@ const ExtraScreenshotsQueueHelper: React.FC<
                           Start fresh with a new question.
                         </p>
                       </div>
+                      {/* Window Movement Command */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span>Move Window</span>
+                          <div className="flex gap-1">
+                            <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] leading-none">
+                              ⌘
+                            </span>
+                            <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] leading-none">
+                              ←
+                            </span>
+                            <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] leading-none">
+                              →
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] leading-relaxed text-white/70">
+                          Move the window to the left or right side of the
+                          screen.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -191,6 +213,9 @@ const ExtraScreenshotsQueueHelper: React.FC<
             )}
             {/* End of Tooltip Content */}
           </div>
+
+          {/* Separator */}
+          <div className="mx-2 h-4 w-px bg-white/20" />
         </div>
       </div>
     </div>

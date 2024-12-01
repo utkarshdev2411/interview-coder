@@ -119,7 +119,10 @@ export const ComplexitySection = ({
   </div>
 )
 
-const Solutions: React.FC = () => {
+interface SolutionsProps {
+  setView: React.Dispatch<React.SetStateAction<"queue" | "solutions" | "debug">>
+}
+const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -240,6 +243,9 @@ const Solutions: React.FC = () => {
           time_complexity: string
           space_complexity: string
         } | null
+        if (!solution) {
+          setView("queue") //make sure that this is correct. or like make sure there's a toast or something
+        }
         setSolutionData(solution?.code || null)
         setThoughtsData(solution?.thoughts || null)
         setTimeComplexityData(solution?.time_complexity || null)

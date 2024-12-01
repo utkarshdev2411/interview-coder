@@ -92,8 +92,9 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const [problemStatementData, setProblemStatementData] =
-    useState<ProblemStatementData | null>(null)
+  const [, setProblemStatementData] = useState<ProblemStatementData | null>(
+    null
+  )
   const [previousCode, setPreviousCode] = useState<string | null>(null)
   const [newCode, setNewCode] = useState<string | null>(null)
   const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
