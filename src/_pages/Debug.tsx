@@ -84,10 +84,7 @@ const CodeComparisonSection = ({
   </div>
 )
 
-interface DebugProps {
-  setView: React.Dispatch<React.SetStateAction<"queue" | "solutions" | "debug">>
-}
-const Debug: React.FC<DebugProps> = ({ setView }) => {
+const Debug: React.FC = () => {
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -177,16 +174,15 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
     updateDimensions()
 
     // Set up event listeners
+    //on load, we'll set the state data of all our state variables to use the query cache data for new_solution
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
+      window.electronAPI.onResetView(() => refetch()),
       // when debugging starts for the first time or any time after that, you'll only set the loading state to true
       window.electronAPI.onDebugStart(() => {
         setProcessing(true)
       }),
-      //when there's an error with debugging, there can be two cases:
-      // the first case is if this is our first attempt at debugging, then we should show a toast and set the view to solutions
-      // the second case is if we've already tried debugging before, then we should just show a toast and not change the view
-      // we can determine if this is our first attempt or not by checking if the new_solution query is null or not
+      // this entire component only renders if there's a new_solution in the cache, so if there's an error, we'll just show a toast and set the processing state to false
       window.electronAPI.onDebugError((error: string) => {
         showToast(
           "Processing Failed",
@@ -196,37 +192,7 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
 
         setProcessing(false)
 
-        // Check if this is first debug attempt by seeing if new_solution exists
-        const newSolution = queryClient.getQueryData(["new_solution"])
-        if (!newSolution) {
-          // First attempt failed - go back to solutions view
-          setView("solutions")
-        }
-        // Otherwise stay on debug view since we've already debugged successfully before and just don't change anything
-
         console.error("Processing error:", error)
-      }),
-
-      // When DEBUGGING succeeds on this page, it means we've already debugged once before, so we're just updating the debug
-
-      window.electronAPI.onDebugSuccess((data) => {
-        setProcessing(false)
-
-        // Update the query cache with new solution data
-        queryClient.setQueryData(["new_solution"], data.solution)
-
-        // Update all the state variables with the new data
-        setNewCode(data.solution.new_code || null)
-        setThoughtsData(data.solution.thoughts || null)
-        setTimeComplexityData(data.solution.time_complexity || null)
-        setSpaceComplexityData(data.solution.space_complexity || null)
-
-        // Show success toast
-        showToast(
-          "Debug Complete",
-          "Your code has been successfully debugged.",
-          "success"
-        )
       })
     ]
 
@@ -322,6 +288,7 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
             <ScreenshotQueue
               screenshots={extraScreenshots}
               onDeleteScreenshot={handleDeleteExtraScreenshot}
+              isLoading={false}
             />
           </div>
         </div>

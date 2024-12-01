@@ -98,6 +98,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
     // Set up event listeners
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
+      window.electronAPI.onResetView(() => refetch()),
 
       window.electronAPI.onSolutionError((error: string) => {
         showToast(

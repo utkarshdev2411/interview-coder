@@ -464,9 +464,16 @@ export class ProcessingHelper {
           // Use constants matching the expected output format
           response = {
             data: {
-              debug_info: {
-                message: "Sample debug information",
-                details: "Details about the debugging process"
+              solution: {
+                thoughts: [
+                  "First thought about the problem",
+                  "Second thought about the problem"
+                ],
+                old_code: "// Sample code implementation\nfunction solve() { }",
+                new_code: "// Sample code implementation\nfunction solve() { }",
+                time_complexity:
+                  "O(n) because we iterate through the array once",
+                space_complexity: "O(1) because we use constant extra space"
               }
             }
           }

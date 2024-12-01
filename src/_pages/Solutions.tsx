@@ -14,6 +14,7 @@ import {
 } from "../components/ui/toast"
 import { ProblemStatementData } from "../types/solutions"
 import ExtraScreenshotsQueueHelper from "../components/Solutions/ExtraScreenshotsQueueHelper"
+import Debug from "./Debug"
 
 export const ContentSection = ({
   title,
@@ -216,6 +217,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
     // Set up event listeners
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
+      window.electronAPI.onResetView(() => refetch()),
       window.electronAPI.onSolutionStart(() => {
         // Every time processing starts, reset relevant states
         setSolutionData(null)
@@ -280,7 +282,6 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
       window.electronAPI.onDebugSuccess((data) => {
         console.log({ debug_data: data })
         queryClient.setQueryData(["new_solution"], data.solution)
-        setView("debug")
         setDebugProcessing(false)
       }),
       //when there was an error in the initial debugging, we'll show a toast and stop the little generating pulsing thing.
@@ -353,95 +354,106 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
   }
 
   return (
-    <div ref={contentRef} className="relative space-y-3 pb-8">
-      <Toast
-        open={toastOpen}
-        onOpenChange={setToastOpen}
-        variant={toastMessage.variant}
-        duration={3000}
-      >
-        <ToastTitle>{toastMessage.title}</ToastTitle>
-        <ToastDescription>{toastMessage.description}</ToastDescription>
-      </Toast>
+    <>
+      {queryClient.getQueryData(["new_solution"]) ? (
+        <>
+          <Debug />
+        </>
+      ) : (
+        <div ref={contentRef} className="relative space-y-3 pb-8">
+          <Toast
+            open={toastOpen}
+            onOpenChange={setToastOpen}
+            variant={toastMessage.variant}
+            duration={3000}
+          >
+            <ToastTitle>{toastMessage.title}</ToastTitle>
+            <ToastDescription>{toastMessage.description}</ToastDescription>
+          </Toast>
 
-      {/* Conditionally render the screenshot queue if solutionData is available */}
-      {solutionData && (
-        <div className="bg-transparent w-fit">
-          <div className="pb-3">
-            <div className="space-y-3 w-fit">
-              <ScreenshotQueue
-                isLoading={debugProcessing}
-                screenshots={extraScreenshots}
-                onDeleteScreenshot={handleDeleteExtraScreenshot}
-              />
+          {/* Conditionally render the screenshot queue if solutionData is available */}
+          {solutionData && (
+            <div className="bg-transparent w-fit">
+              <div className="pb-3">
+                <div className="space-y-3 w-fit">
+                  <ScreenshotQueue
+                    isLoading={debugProcessing}
+                    screenshots={extraScreenshots}
+                    onDeleteScreenshot={handleDeleteExtraScreenshot}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Navbar of commands with the SolutionsHelper */}
+          <ExtraScreenshotsQueueHelper
+            extraScreenshots={extraScreenshots}
+            onTooltipVisibilityChange={handleTooltipVisibilityChange}
+          />
+
+          {/* Main Content */}
+          <div className="w-full text-sm text-black  bg-black/60 rounded-md">
+            <div className="rounded-lg overflow-hidden">
+              <div className="px-4 py-3 space-y-4">
+                {!solutionData && (
+                  <>
+                    <ContentSection
+                      title="Problem Statement"
+                      content={problemStatementData?.problem_statement}
+                      isLoading={!problemStatementData}
+                    />
+                    {problemStatementData && (
+                      <div className="mt-4 flex">
+                        <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
+                          Generating solutions...
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+                {solutionData && (
+                  <>
+                    <ContentSection
+                      title="Thoughts"
+                      content={
+                        thoughtsData && (
+                          <div className="space-y-3">
+                            <div className="space-y-1">
+                              {thoughtsData.map((thought, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-start gap-2"
+                                >
+                                  <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
+                                  <div>{thought}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      }
+                      isLoading={!thoughtsData}
+                    />
+
+                    <SolutionSection
+                      title="Solution"
+                      content={solutionData}
+                      isLoading={!solutionData}
+                    />
+                    <ComplexitySection
+                      timeComplexity={timeComplexityData}
+                      spaceComplexity={spaceComplexityData}
+                      isLoading={!timeComplexityData || !spaceComplexityData}
+                    />
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* Navbar of commands with the SolutionsHelper */}
-      <ExtraScreenshotsQueueHelper
-        extraScreenshots={extraScreenshots}
-        onTooltipVisibilityChange={handleTooltipVisibilityChange}
-      />
-
-      {/* Main Content */}
-      <div className="w-full text-sm text-black  bg-black/60 rounded-md">
-        <div className="rounded-lg overflow-hidden">
-          <div className="px-4 py-3 space-y-4">
-            {!solutionData && (
-              <>
-                <ContentSection
-                  title="Problem Statement"
-                  content={problemStatementData?.problem_statement}
-                  isLoading={!problemStatementData}
-                />
-                {problemStatementData && (
-                  <div className="mt-4 flex">
-                    <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
-                      Generating solutions...
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-            {solutionData && (
-              <>
-                <ContentSection
-                  title="Thoughts"
-                  content={
-                    thoughtsData && (
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          {thoughtsData.map((thought, index) => (
-                            <div key={index} className="flex items-start gap-2">
-                              <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
-                              <div>{thought}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  }
-                  isLoading={!thoughtsData}
-                />
-
-                <SolutionSection
-                  title="Solution"
-                  content={solutionData}
-                  isLoading={!solutionData}
-                />
-                <ComplexitySection
-                  timeComplexity={timeComplexityData}
-                  spaceComplexity={spaceComplexityData}
-                  isLoading={!timeComplexityData || !spaceComplexityData}
-                />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    </>
   )
 }
 
