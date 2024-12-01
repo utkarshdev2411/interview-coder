@@ -213,9 +213,6 @@ const ExtraScreenshotsQueueHelper: React.FC<
             )}
             {/* End of Tooltip Content */}
           </div>
-
-          {/* Separator */}
-          <div className="mx-2 h-4 w-px bg-white/20" />
         </div>
       </div>
     </div>

@@ -19,17 +19,19 @@ interface ElectronAPI {
   ) => () => void
   onSolutionsReady: (callback: (solutions: string) => void) => () => void
   onResetView: (callback: () => void) => () => void
-  onInitialProcessingStart: (callback: () => void) => () => void
+  onSolutionStart: (callback: () => void) => () => void
   onDebugStart: (callback: () => void) => () => void
   onDebugSuccess: (callback: (data: any) => void) => () => void
-  onInitialSolutionError: (callback: (error: string) => void) => () => void
+  onSolutionError: (callback: (error: string) => void) => () => void
   onProcessingNoScreenshots: (callback: () => void) => () => void
   onProblemExtracted: (callback: (data: any) => void) => () => void
-  onInitialSolutionGenerated: (callback: (data: any) => void) => () => void
+  onSolutionSuccess: (callback: (data: any) => void) => () => void
 
   onUnauthorized: (callback: () => void) => () => void
   onDebugError: (callback: (error: string) => void) => () => void
   takeScreenshot: () => Promise<void>
+  moveWindowLeft: () => Promise<void>
+  moveWindowRight: () => Promise<void>
 }
 
 export const PROCESSING_EVENTS = {
@@ -38,14 +40,14 @@ export const PROCESSING_EVENTS = {
   NO_SCREENSHOTS: "processing-no-screenshots",
 
   //states for generating the initial solution
-  INITIAL_START: "initial-processing-start",
+  INITIAL_START: "initial-start",
   PROBLEM_EXTRACTED: "problem-extracted",
-  INITIAL_SOLUTION_GENERATED: "initial-solution-generated",
-  INITIAL_SOLUTION_ERROR: "initial-initial-processing-error",
+  SOLUTION_SUCCESS: "solution-success",
+  INITIAL_SOLUTION_ERROR: "solution-error",
 
   //states for processing the debugging
-  DEBUG_START: "debug-processing-start",
-  DEBUG_SUCCESS: "extra-processing-success",
+  DEBUG_START: "debug-start",
+  DEBUG_SUCCESS: "debug-success",
   DEBUG_ERROR: "debug-error"
 } as const
 
@@ -83,7 +85,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener("reset-view", subscription)
     }
   },
-  onInitialProcessingStart: (callback: () => void) => {
+  onSolutionStart: (callback: () => void) => {
     const subscription = () => callback()
     ipcRenderer.on(PROCESSING_EVENTS.INITIAL_START, subscription)
     return () => {
@@ -99,10 +101,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   onDebugSuccess: (callback: (data: any) => void) => {
-    const subscription = (_event: any, data: any) => callback(data)
-    ipcRenderer.on(PROCESSING_EVENTS.DEBUG_SUCCESS, subscription)
+    ipcRenderer.on("debug-success", (_event, data) => callback(data))
     return () => {
-      ipcRenderer.removeListener(PROCESSING_EVENTS.DEBUG_SUCCESS, subscription)
+      ipcRenderer.removeListener("debug-success", (_event, data) =>
+        callback(data)
+      )
     }
   },
   onDebugError: (callback: (error: string) => void) => {
@@ -112,7 +115,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener(PROCESSING_EVENTS.DEBUG_ERROR, subscription)
     }
   },
-  onInitialSolutionError: (callback: (error: string) => void) => {
+  onSolutionError: (callback: (error: string) => void) => {
     const subscription = (_: any, error: string) => callback(error)
     ipcRenderer.on(PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR, subscription)
     return () => {
@@ -129,7 +132,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener(PROCESSING_EVENTS.NO_SCREENSHOTS, subscription)
     }
   },
-  // And in the implementation:
+
   onProblemExtracted: (callback: (data: any) => void) => {
     const subscription = (_: any, data: any) => callback(data)
     ipcRenderer.on(PROCESSING_EVENTS.PROBLEM_EXTRACTED, subscription)
@@ -140,12 +143,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
       )
     }
   },
-  onInitialSolutionGenerated: (callback: (data: any) => void) => {
+  onSolutionSuccess: (callback: (data: any) => void) => {
     const subscription = (_: any, data: any) => callback(data)
-    ipcRenderer.on(PROCESSING_EVENTS.INITIAL_SOLUTION_GENERATED, subscription)
+    ipcRenderer.on(PROCESSING_EVENTS.SOLUTION_SUCCESS, subscription)
     return () => {
       ipcRenderer.removeListener(
-        PROCESSING_EVENTS.INITIAL_SOLUTION_GENERATED,
+        PROCESSING_EVENTS.SOLUTION_SUCCESS,
         subscription
       )
     }
@@ -156,5 +159,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => {
       ipcRenderer.removeListener(PROCESSING_EVENTS.UNAUTHORIZED, subscription)
     }
-  }
+  },
+  moveWindowLeft: () => ipcRenderer.invoke("move-window-left"),
+  moveWindowRight: () => ipcRenderer.invoke("move-window-right")
 } as ElectronAPI)

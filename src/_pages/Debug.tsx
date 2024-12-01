@@ -183,20 +183,51 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
       window.electronAPI.onDebugStart(() => {
         setProcessing(true)
       }),
+      //when there's an error with debugging, there can be two cases:
+      // the first case is if this is our first attempt at debugging, then we should show a toast and set the view to solutions
+      // the second case is if we've already tried debugging before, then we should just show a toast and not change the view
+      // we can determine if this is our first attempt or not by checking if the new_solution query is null or not
       window.electronAPI.onDebugError((error: string) => {
-        //if there's an issue with the debugging, then show a toast message and
         showToast(
           "Processing Failed",
           "There was an error debugging your code.",
           "error"
         )
-        // Reset to the previous solution, except there should be no resetting because we never cleared it in the first place. we only clear it on success
-        // ALSO we shouldn't shift to debugging in the first place, we should only see this screen if we finish debugging the first time
-        setView("solutions")
+
+        setProcessing(false)
+
+        // Check if this is first debug attempt by seeing if new_solution exists
+        const newSolution = queryClient.getQueryData(["new_solution"])
+        if (!newSolution) {
+          // First attempt failed - go back to solutions view
+          setView("solutions")
+        }
+        // Otherwise stay on debug view since we've already debugged successfully before and just don't change anything
+
         console.error("Processing error:", error)
+      }),
+
+      // When DEBUGGING succeeds on this page, it means we've already debugged once before, so we're just updating the debug
+
+      window.electronAPI.onDebugSuccess((data) => {
+        setProcessing(false)
+
+        // Update the query cache with new solution data
+        queryClient.setQueryData(["new_solution"], data.solution)
+
+        // Update all the state variables with the new data
+        setNewCode(data.solution.new_code || null)
+        setThoughtsData(data.solution.thoughts || null)
+        setTimeComplexityData(data.solution.time_complexity || null)
+        setSpaceComplexityData(data.solution.space_complexity || null)
+
+        // Show success toast
+        showToast(
+          "Debug Complete",
+          "Your code has been successfully debugged.",
+          "success"
+        )
       })
-      // When DEBUGGING succeeds, update new code and thoughts
-      //TODO: ADD A LISTNER onDebugSuccess
     ]
 
     return () => {
@@ -206,15 +237,33 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
   }, [isTooltipVisible, tooltipHeight])
 
   useEffect(() => {
-    // Fetch initial data
+    // Fetch initial data for both previous and new solutions
     const previousSolution = queryClient.getQueryData(["solution"]) as {
       code: string
       thoughts: string[]
       time_complexity: string
       space_complexity: string
     } | null
+
+    const newSolution = queryClient.getQueryData(["new_solution"]) as {
+      new_code: string
+      thoughts: string[]
+      time_complexity: string
+      space_complexity: string
+    } | null
+
+    // Set previous code from solution cache
     setPreviousCode(previousSolution?.code || null)
 
+    // Set all state variables from new_solution cache if it exists
+    if (newSolution) {
+      setNewCode(newSolution.new_code || null)
+      setThoughtsData(newSolution.thoughts || null)
+      setTimeComplexityData(newSolution.time_complexity || null)
+      setSpaceComplexityData(newSolution.space_complexity || null)
+    }
+
+    // Subscribe to changes in both solution caches
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (event?.query.queryKey[0] === "solution") {
         const solution = queryClient.getQueryData(["solution"]) as {
@@ -228,7 +277,24 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
           setPreviousCode(solution.code)
         }
       }
+
+      if (event?.query.queryKey[0] === "new_solution") {
+        const newSolution = queryClient.getQueryData(["new_solution"]) as {
+          new_code: string
+          thoughts: string[]
+          time_complexity: string
+          space_complexity: string
+        } | null
+
+        if (newSolution) {
+          setNewCode(newSolution.new_code)
+          setThoughtsData(newSolution.thoughts)
+          setTimeComplexityData(newSolution.time_complexity)
+          setSpaceComplexityData(newSolution.space_complexity)
+        }
+      }
     })
+
     return () => unsubscribe()
   }, [queryClient])
 

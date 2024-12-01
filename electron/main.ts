@@ -31,14 +31,14 @@ export class AppState {
     NO_SCREENSHOTS: "processing-no-screenshots",
 
     //states for generating the initial solution
-    INITIAL_START: "initial-processing-start",
+    INITIAL_START: "initial-start",
     PROBLEM_EXTRACTED: "problem-extracted",
-    INITIAL_SOLUTION_GENERATED: "initial-solution-generated",
-    INITIAL_SOLUTION_ERROR: "initial-initial-processing-error",
+    SOLUTION_SUCCESS: "solution-success",
+    INITIAL_SOLUTION_ERROR: "solution-error",
 
     //states for processing the debugging
-    DEBUG_START: "debug-processing-start",
-    DEBUG_SUCCESS: "extra-processing-success",
+    DEBUG_START: "debug-start",
+    DEBUG_SUCCESS: "debug-success",
     DEBUG_ERROR: "debug-error"
   } as const
 

@@ -7,10 +7,12 @@ interface Screenshot {
 }
 
 interface ScreenshotQueueProps {
+  isLoading: boolean
   screenshots: Screenshot[]
   onDeleteScreenshot: (index: number) => void
 }
 const ScreenshotQueue: React.FC<ScreenshotQueueProps> = ({
+  isLoading,
   screenshots,
   onDeleteScreenshot
 }) => {
@@ -25,6 +27,7 @@ const ScreenshotQueue: React.FC<ScreenshotQueueProps> = ({
       {displayScreenshots.map((screenshot, index) => (
         <ScreenshotItem
           key={screenshot.path}
+          isLoading={isLoading}
           screenshot={screenshot}
           index={index}
           onDelete={onDeleteScreenshot}

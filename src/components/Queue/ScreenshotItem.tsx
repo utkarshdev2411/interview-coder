@@ -11,12 +11,14 @@ interface ScreenshotItemProps {
   screenshot: Screenshot
   onDelete: (index: number) => void
   index: number
+  isLoading: boolean
 }
 
 const ScreenshotItem: React.FC<ScreenshotItemProps> = ({
   screenshot,
   onDelete,
-  index
+  index,
+  isLoading
 }) => {
   const handleDelete = async () => {
     await onDelete(index)
@@ -26,10 +28,17 @@ const ScreenshotItem: React.FC<ScreenshotItemProps> = ({
     <>
       <div className="border border-white relative group">
         <div className="w-full h-full relative">
+          {isLoading && (
+            <div className="absolute inset-0 bg-black bg-opacity-50 z-10 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
           <img
             src={screenshot.preview}
             alt="Screenshot"
-            className="w-full h-full object-cover transition-transform duration-300 cursor-pointer group-hover:scale-105 group-hover:brightness-75"
+            className={`w-full h-full object-cover transition-transform duration-300 cursor-pointer group-hover:scale-105 group-hover:brightness-75 ${
+              isLoading ? "opacity-50" : ""
+            }`}
           />
         </div>
         <button

@@ -76,7 +76,7 @@ export class ProcessingHelper {
         if (result.success) {
           console.log("Processing success:", result.data)
           mainWindow.webContents.send(
-            this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_GENERATED,
+            this.appState.PROCESSING_EVENTS.SOLUTION_SUCCESS,
             result.data
           )
         } else {
@@ -275,7 +275,7 @@ export class ProcessingHelper {
           const solutionsResult = await this.generateSolutionsHelper(signal)
           if (solutionsResult.success) {
             mainWindow.webContents.send(
-              this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_GENERATED,
+              this.appState.PROCESSING_EVENTS.SOLUTION_SUCCESS,
               solutionsResult.data
             )
           } else {
@@ -475,7 +475,7 @@ export class ProcessingHelper {
         if (!response || !response.data) {
           throw new Error("No response data received")
         }
-
+        console.log({ debug_data: response.data })
         return { success: true, data: response.data }
       } catch (error: any) {
         const mainWindow = this.appState.getMainWindow()

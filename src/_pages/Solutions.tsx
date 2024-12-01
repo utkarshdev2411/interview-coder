@@ -126,6 +126,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
 
+  const [debugProcessing, setDebugProcessing] = useState(false)
   const [problemStatementData, setProblemStatementData] =
     useState<ProblemStatementData | null>(null)
   const [solutionData, setSolutionData] = useState<string | null>(null)
@@ -215,28 +216,21 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
     // Set up event listeners
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
-      window.electronAPI.onInitialProcessingStart(() => {
+      window.electronAPI.onSolutionStart(() => {
         // Every time processing starts, reset relevant states
         setSolutionData(null)
         setThoughtsData(null)
         setTimeComplexityData(null)
         setSpaceComplexityData(null)
       }),
-      window.electronAPI.onDebugStart(() => {
-        //everytime we debug, we should temporarily set everything to null
-        setSolutionData(null)
-        setThoughtsData(null)
-        setTimeComplexityData(null)
-        setSpaceComplexityData(null)
-      }),
-
-      window.electronAPI.onInitialSolutionError((error: string) => {
+      //if there was an error processing the initial solution
+      window.electronAPI.onSolutionError((error: string) => {
         showToast(
           "Processing Failed",
           "There was an error processing your extra screenshots.",
           "error"
         )
-        // Reset solutions and complexities to previous states
+        // Reset solutions in the cache (even though this shouldn't ever happen) and complexities to previous states
         const solution = queryClient.getQueryData(["solution"]) as {
           code: string
           thoughts: string[]
@@ -253,37 +247,50 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
         console.error("Processing error:", error)
       }),
       //when the initial solution is generated, we'll set the solution data to that
-      window.electronAPI.onInitialSolutionGenerated((data) => {
-        queryClient.setQueryData(["solution"], data.solution)
-        const solution = queryClient.getQueryData(["solution"]) as {
-          code: string
-          thoughts: string[]
-          time_complexity: string
-          space_complexity: string
-        } | null
-        console.log({ solution })
-        setSolutionData(data.solution.code || null)
-        setThoughtsData(data.solution.thoughts || null)
-        setTimeComplexityData(data.solution.time_complexity || null)
-        setSpaceComplexityData(data.solution.space_complexity || null)
+      window.electronAPI.onSolutionSuccess((data) => {
+        if (!data?.solution) {
+          console.warn("Received empty or invalid solution data")
+          return
+        }
+
+        console.log({ solution: data.solution })
+
+        const solutionData = {
+          code: data.solution.code,
+          thoughts: data.solution.thoughts,
+          time_complexity: data.solution.time_complexity,
+          space_complexity: data.solution.space_complexity
+        }
+
+        queryClient.setQueryData(["solution"], solutionData)
+        setSolutionData(solutionData.code || null)
+        setThoughtsData(solutionData.thoughts || null)
+        setTimeComplexityData(solutionData.time_complexity || null)
+        setSpaceComplexityData(solutionData.space_complexity || null)
       }),
 
       //########################################################
       //DEBUG EVENTS
       //########################################################
-      //when the debug works, we'll update everything with this new data.
+      window.electronAPI.onDebugStart(() => {
+        //we'll set the debug processing state to true and use that to render a little loader
+        setDebugProcessing(true)
+      }),
+      //the first time debugging works, we'll set the view to debug and populate the cache with the data
       window.electronAPI.onDebugSuccess((data) => {
-        queryClient.setQueryData(["solution"], data.solution)
-        const solution = queryClient.getQueryData(["solution"]) as {
-          code: string
-          thoughts: string[]
-          time_complexity: string
-          space_complexity: string
-        } | null
-        setSolutionData(solution?.code || null)
-        setThoughtsData(solution?.thoughts || null)
-        setTimeComplexityData(solution?.time_complexity || null)
-        setSpaceComplexityData(solution?.space_complexity || null)
+        console.log({ debug_data: data })
+        queryClient.setQueryData(["new_solution"], data.solution)
+        setView("debug")
+        setDebugProcessing(false)
+      }),
+      //when there was an error in the initial debugging, we'll show a toast and stop the little generating pulsing thing.
+      window.electronAPI.onDebugError(() => {
+        showToast(
+          "Processing Failed",
+          "There was an error debugging your code.",
+          "error"
+        )
+        setDebugProcessing(false)
       }),
       window.electronAPI.onProcessingNoScreenshots(() => {
         showToast(
@@ -363,6 +370,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
           <div className="pb-3">
             <div className="space-y-3 w-fit">
               <ScreenshotQueue
+                isLoading={debugProcessing}
                 screenshots={extraScreenshots}
                 onDeleteScreenshot={handleDeleteExtraScreenshot}
               />

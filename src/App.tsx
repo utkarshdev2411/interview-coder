@@ -30,9 +30,9 @@ declare global {
       deleteScreenshot: (
         path: string
       ) => Promise<{ success: boolean; error?: string }>
-      onInitialProcessingStart: (callback: () => void) => () => void
-      onInitialSolutionError: (callback: (error: string) => void) => () => void
-      onInitialSolutionGenerated: (callback: (data: any) => void) => () => void
+      onSolutionStart: (callback: () => void) => () => void
+      onSolutionError: (callback: (error: string) => void) => () => void
+      onSolutionSuccess: (callback: (data: any) => void) => () => void
       onProblemExtracted: (callback: (data: any) => void) => () => void
 
       onDebugSuccess: (callback: (data: any) => void) => () => void
@@ -110,14 +110,11 @@ const App: React.FC = () => {
   }, [view]) // Re-run when view changes
   useEffect(() => {
     const cleanupFunctions = [
-      window.electronAPI.onInitialProcessingStart(() => {
+      window.electronAPI.onSolutionStart(() => {
         setView("solutions")
         console.log("starting processing")
       }),
-      window.electronAPI.onDebugStart(() => {
-        setView("debug")
-        console.log("starting debug processing")
-      }),
+
       window.electronAPI.onUnauthorized(() => {
         queryClient.removeQueries(["screenshots"])
         queryClient.removeQueries(["solution"])
