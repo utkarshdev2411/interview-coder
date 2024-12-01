@@ -99,7 +99,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
 
-      window.electronAPI.INITIAL_SOLUTION_ERROR((error: string) => {
+      window.electronAPI.onInitialSolutionError((error: string) => {
         showToast(
           "Processing Failed",
           "There was an error processing your screenshots.",

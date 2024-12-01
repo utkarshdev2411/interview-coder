@@ -230,7 +230,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
         setSpaceComplexityData(null)
       }),
 
-      window.electronAPI.INITIAL_SOLUTION_ERROR((error: string) => {
+      window.electronAPI.onInitialSolutionError((error: string) => {
         showToast(
           "Processing Failed",
           "There was an error processing your extra screenshots.",
@@ -268,6 +268,9 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
         setSpaceComplexityData(data.solution.space_complexity || null)
       }),
 
+      //########################################################
+      //DEBUG EVENTS
+      //########################################################
       //when the debug works, we'll update everything with this new data.
       window.electronAPI.onDebugSuccess((data) => {
         queryClient.setQueryData(["solution"], data.solution)

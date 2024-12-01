@@ -183,7 +183,7 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
       window.electronAPI.onDebugStart(() => {
         setProcessing(true)
       }),
-      window.electronAPI.INITIAL_SOLUTION_ERROR((error: string) => {
+      window.electronAPI.onDebugError((error: string) => {
         //if there's an issue with the debugging, then show a toast message and
         showToast(
           "Processing Failed",
