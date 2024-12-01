@@ -222,7 +222,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
         setTimeComplexityData(null)
         setSpaceComplexityData(null)
       }),
-      window.electronAPI.onDebugProcessingStart(() => {
+      window.electronAPI.onDebugStart(() => {
         //everytime we debug, we should temporarily set everything to null
         setSolutionData(null)
         setThoughtsData(null)
@@ -230,7 +230,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
         setSpaceComplexityData(null)
       }),
 
-      window.electronAPI.onProcessingError((error: string) => {
+      window.electronAPI.INITIAL_SOLUTION_ERROR((error: string) => {
         showToast(
           "Processing Failed",
           "There was an error processing your extra screenshots.",
@@ -252,7 +252,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
         setSpaceComplexityData(solution?.space_complexity || null)
         console.error("Processing error:", error)
       }),
-      //when it actually works, then we'll set things to the new solution
+      //when the initial solution is generated, we'll set the solution data to that
       window.electronAPI.onInitialSolutionGenerated((data) => {
         queryClient.setQueryData(["solution"], data.solution)
         const solution = queryClient.getQueryData(["solution"]) as {
@@ -267,8 +267,9 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
         setTimeComplexityData(data.solution.time_complexity || null)
         setSpaceComplexityData(data.solution.space_complexity || null)
       }),
+
       //when the debug works, we'll update everything with this new data.
-      window.electronAPI.onProcessingExtraSuccess((data) => {
+      window.electronAPI.onDebugSuccess((data) => {
         queryClient.setQueryData(["solution"], data.solution)
         const solution = queryClient.getQueryData(["solution"]) as {
           code: string

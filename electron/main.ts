@@ -26,16 +26,20 @@ export class AppState {
 
   // Processing events
   public readonly PROCESSING_EVENTS = {
-    INITIAL_START: "initial-processing-start",
-    DEBUG_START: "debug-processing-start",
-    START: "processing-start",
-    SUCCESS: "processing-success",
-    ERROR: "processing-error",
+    //global states
     UNAUTHORIZED: "procesing-unauthorized",
     NO_SCREENSHOTS: "processing-no-screenshots",
-    EXTRA_SUCCESS: "extra-processing-success",
+
+    //states for generating the initial solution
+    INITIAL_START: "initial-processing-start",
     PROBLEM_EXTRACTED: "problem-extracted",
-    INITIAL_SOLUTION_GENERATED: "initial-solution-generated"
+    INITIAL_SOLUTION_GENERATED: "initial-solution-generated",
+    INITIAL_SOLUTION_ERROR: "initial-initial-processing-error",
+
+    //states for processing the debugging
+    DEBUG_START: "debug-processing-start",
+    DEBUG_SUCCESS: "extra-processing-success",
+    DEBUG_ERROR: "debug-error"
   } as const
 
   constructor() {

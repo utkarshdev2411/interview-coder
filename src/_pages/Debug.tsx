@@ -12,7 +12,6 @@ import {
   ToastTitle,
   ToastVariant
 } from "../components/ui/toast"
-import { ProblemStatementData } from "../types/solutions"
 import ExtraScreenshotsQueueHelper from "../components/Solutions/ExtraScreenshotsQueueHelper"
 
 const CodeComparisonSection = ({
@@ -92,9 +91,7 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const [, setProblemStatementData] = useState<ProblemStatementData | null>(
-    null
-  )
+  const [processing, setProcessing] = useState(false)
   const [previousCode, setPreviousCode] = useState<string | null>(null)
   const [newCode, setNewCode] = useState<string | null>(null)
   const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
@@ -182,41 +179,24 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
     // Set up event listeners
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
-      window.electronAPI.onDebugProcessingStart(() => {
-        setNewCode(null)
-        setThoughtsData(null)
-        setTimeComplexityData(null)
-        setSpaceComplexityData(null)
+      // when debugging starts for the first time or any time after that, you'll only set the loading state to true
+      window.electronAPI.onDebugStart(() => {
+        setProcessing(true)
       }),
-      window.electronAPI.onProcessingError((error: string) => {
+      window.electronAPI.INITIAL_SOLUTION_ERROR((error: string) => {
         //if there's an issue with the debugging, then show a toast message and
         showToast(
           "Processing Failed",
           "There was an error debugging your code.",
           "error"
         )
-        // Reset to the previous solution
-        const solution = queryClient.getQueryData(["solution"]) as {
-          code: string
-          thoughts: string[]
-          time_complexity: string
-          space_complexity: string
-        } | null
-
-        setThoughtsData(solution?.thoughts || null)
-        setTimeComplexityData(solution?.time_complexity || null)
-        setSpaceComplexityData(solution?.space_complexity || null)
-        setView("solutions") //go back to solutions, we couldn't debug your thing
+        // Reset to the previous solution, except there should be no resetting because we never cleared it in the first place. we only clear it on success
+        // ALSO we shouldn't shift to debugging in the first place, we should only see this screen if we finish debugging the first time
+        setView("solutions")
         console.error("Processing error:", error)
-      }),
-      // When debugging succeeds, update new code and thoughts
-      window.electronAPI.onProcessingSuccess((data) => {
-        const { new_solution } = data
-        setNewCode(new_solution.code || null)
-        setThoughtsData(new_solution.thoughts || null)
-        setTimeComplexityData(new_solution.time_complexity || null)
-        setSpaceComplexityData(new_solution.space_complexity || null)
       })
+      // When DEBUGGING succeeds, update new code and thoughts
+      //TODO: ADD A LISTNER onDebugSuccess
     ]
 
     return () => {
@@ -227,9 +207,6 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
 
   useEffect(() => {
     // Fetch initial data
-    setProblemStatementData(
-      queryClient.getQueryData(["problem_statement"]) || null
-    )
     const previousSolution = queryClient.getQueryData(["solution"]) as {
       code: string
       thoughts: string[]
@@ -239,11 +216,6 @@ const Debug: React.FC<DebugProps> = ({ setView }) => {
     setPreviousCode(previousSolution?.code || null)
 
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event?.query.queryKey[0] === "problem_statement") {
-        setProblemStatementData(
-          queryClient.getQueryData(["problem_statement"]) || null
-        )
-      }
       if (event?.query.queryKey[0] === "solution") {
         const solution = queryClient.getQueryData(["solution"]) as {
           code: string

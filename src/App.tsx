@@ -9,30 +9,36 @@ import Debug from "./_pages/Debug"
 declare global {
   interface Window {
     electronAPI: {
+      //RANDOM GETTER/SETTERS
       updateContentDimensions: (dimensions: {
         width: number
         height: number
       }) => Promise<void>
       getScreenshots: () => Promise<Array<{ path: string; preview: string }>>
 
-      deleteScreenshot: (
-        path: string
-      ) => Promise<{ success: boolean; error?: string }>
+      //GLOBAL EVENTS
+      //TODO: CHECK THAT PROCESSING NO SCREENSHOTS AND TAKE SCREENSHOTS ARE BOTH CONDITIONAL
+      onUnauthorized: (callback: () => void) => () => void
       onScreenshotTaken: (
         callback: (data: { path: string; preview: string }) => void
       ) => () => void
-      onInitialProcessingStart: (callback: () => void) => () => void
-      onDebugProcessingStart: (callback: () => void) => () => void
-      onProcessingSuccess: (callback: (data: any) => void) => () => void
-      onProcessingExtraSuccess: (callback: (data: any) => void) => () => void
-      onProcessingError: (callback: (error: string) => void) => () => void
       onProcessingNoScreenshots: (callback: () => void) => () => void
       onResetView: (callback: () => void) => () => void
       takeScreenshot: () => Promise<void>
 
-      onUnauthorized: (callback: () => void) => () => void
+      //INITIAL SOLUTION EVENTS
+      deleteScreenshot: (
+        path: string
+      ) => Promise<{ success: boolean; error?: string }>
+      onInitialProcessingStart: (callback: () => void) => () => void
+      onInitialSolutionError: (callback: (error: string) => void) => () => void
       onInitialSolutionGenerated: (callback: (data: any) => void) => () => void
       onProblemExtracted: (callback: (data: any) => void) => () => void
+
+      onDebugSuccess: (callback: (data: any) => void) => () => void
+
+      onDebugStart: (callback: () => void) => () => void
+      onDebugError: (callback: (error: string) => void) => () => void
     }
   }
 }
@@ -108,7 +114,7 @@ const App: React.FC = () => {
         setView("solutions")
         console.log("starting processing")
       }),
-      window.electronAPI.onDebugProcessingStart(() => {
+      window.electronAPI.onDebugStart(() => {
         setView("debug")
         console.log("starting debug processing")
       }),

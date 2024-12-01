@@ -20,28 +20,33 @@ interface ElectronAPI {
   onSolutionsReady: (callback: (solutions: string) => void) => () => void
   onResetView: (callback: () => void) => () => void
   onInitialProcessingStart: (callback: () => void) => () => void
-  onDebugProcessingStart: (callback: () => void) => () => void
-  onProcessingSuccess: (callback: (data: any) => void) => () => void
-  onProcessingExtraSuccess: (callback: (data: any) => void) => () => void
-  onProcessingError: (callback: (error: string) => void) => () => void
+  onDebugStart: (callback: () => void) => () => void
+  onDebugSuccess: (callback: (data: any) => void) => () => void
+  onInitialSolutionError: (callback: (error: string) => void) => () => void
   onProcessingNoScreenshots: (callback: () => void) => () => void
   onProblemExtracted: (callback: (data: any) => void) => () => void
   onInitialSolutionGenerated: (callback: (data: any) => void) => () => void
 
   onUnauthorized: (callback: () => void) => () => void
+  onDebugError: (callback: (error: string) => void) => () => void
   takeScreenshot: () => Promise<void>
 }
 
 export const PROCESSING_EVENTS = {
-  INITIAL_START: "initial-processing-start",
-  DEBUG_START: "debug-processing-start",
-  SUCCESS: "processing-success",
-  ERROR: "processing-error",
+  //global states
   UNAUTHORIZED: "procesing-unauthorized",
   NO_SCREENSHOTS: "processing-no-screenshots",
-  EXTRA_SUCCESS: "extra-processing-success",
+
+  //states for generating the initial solution
+  INITIAL_START: "initial-processing-start",
   PROBLEM_EXTRACTED: "problem-extracted",
-  INITIAL_SOLUTION_GENERATED: "initial-solution-generated"
+  INITIAL_SOLUTION_GENERATED: "initial-solution-generated",
+  INITIAL_SOLUTION_ERROR: "initial-initial-processing-error",
+
+  //states for processing the debugging
+  DEBUG_START: "debug-processing-start",
+  DEBUG_SUCCESS: "extra-processing-success",
+  DEBUG_ERROR: "debug-error"
 } as const
 
 // Expose the Electron API to the renderer process
@@ -85,32 +90,36 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener(PROCESSING_EVENTS.INITIAL_START, subscription)
     }
   },
-  onDebugProcessingStart: (callback: () => void) => {
+  onDebugStart: (callback: () => void) => {
     const subscription = () => callback()
     ipcRenderer.on(PROCESSING_EVENTS.DEBUG_START, subscription)
     return () => {
       ipcRenderer.removeListener(PROCESSING_EVENTS.DEBUG_START, subscription)
     }
   },
-  onProcessingSuccess: (callback: (data: any) => void) => {
+
+  onDebugSuccess: (callback: (data: any) => void) => {
     const subscription = (_event: any, data: any) => callback(data)
-    ipcRenderer.on(PROCESSING_EVENTS.SUCCESS, subscription)
+    ipcRenderer.on(PROCESSING_EVENTS.DEBUG_SUCCESS, subscription)
     return () => {
-      ipcRenderer.removeListener(PROCESSING_EVENTS.SUCCESS, subscription)
+      ipcRenderer.removeListener(PROCESSING_EVENTS.DEBUG_SUCCESS, subscription)
     }
   },
-  onProcessingExtraSuccess: (callback: (data: any) => void) => {
-    const subscription = (_event: any, data: any) => callback(data)
-    ipcRenderer.on(PROCESSING_EVENTS.EXTRA_SUCCESS, subscription)
-    return () => {
-      ipcRenderer.removeListener(PROCESSING_EVENTS.EXTRA_SUCCESS, subscription)
-    }
-  },
-  onProcessingError: (callback: (error: string) => void) => {
+  onDebugError: (callback: (error: string) => void) => {
     const subscription = (_: any, error: string) => callback(error)
-    ipcRenderer.on(PROCESSING_EVENTS.ERROR, subscription)
+    ipcRenderer.on(PROCESSING_EVENTS.DEBUG_ERROR, subscription)
     return () => {
-      ipcRenderer.removeListener(PROCESSING_EVENTS.ERROR, subscription)
+      ipcRenderer.removeListener(PROCESSING_EVENTS.DEBUG_ERROR, subscription)
+    }
+  },
+  onInitialSolutionError: (callback: (error: string) => void) => {
+    const subscription = (_: any, error: string) => callback(error)
+    ipcRenderer.on(PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR, subscription)
+    return () => {
+      ipcRenderer.removeListener(
+        PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
+        subscription
+      )
     }
   },
   onProcessingNoScreenshots: (callback: () => void) => {

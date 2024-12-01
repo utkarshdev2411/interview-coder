@@ -76,12 +76,12 @@ export class ProcessingHelper {
         if (result.success) {
           console.log("Processing success:", result.data)
           mainWindow.webContents.send(
-            this.appState.PROCESSING_EVENTS.SUCCESS,
+            this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_GENERATED,
             result.data
           )
         } else {
           mainWindow.webContents.send(
-            this.appState.PROCESSING_EVENTS.ERROR,
+            this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
             result.error
           )
         }
@@ -89,13 +89,13 @@ export class ProcessingHelper {
         if (axios.isCancel(error)) {
           console.log("Processing request canceled")
           mainWindow.webContents.send(
-            this.appState.PROCESSING_EVENTS.ERROR,
+            this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
             "Processing was canceled by the user."
           )
         } else {
           console.error("Processing error:", error)
           mainWindow.webContents.send(
-            this.appState.PROCESSING_EVENTS.ERROR,
+            this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
             error.message
           )
         }
@@ -103,6 +103,7 @@ export class ProcessingHelper {
         this.currentProcessingAbortController = null
       }
     } else {
+      //view == solutions
       const extraScreenshotQueue =
         this.screenshotHelper.getExtraScreenshotQueue()
       if (extraScreenshotQueue.length === 0) {
@@ -136,12 +137,12 @@ export class ProcessingHelper {
 
         if (result.success) {
           mainWindow.webContents.send(
-            this.appState.PROCESSING_EVENTS.EXTRA_SUCCESS,
+            this.appState.PROCESSING_EVENTS.DEBUG_SUCCESS,
             result.data
           )
         } else {
           mainWindow.webContents.send(
-            this.appState.PROCESSING_EVENTS.ERROR,
+            this.appState.PROCESSING_EVENTS.DEBUG_ERROR,
             result.error
           )
         }
@@ -149,13 +150,13 @@ export class ProcessingHelper {
         if (axios.isCancel(error)) {
           console.log("Extra processing request canceled")
           mainWindow.webContents.send(
-            this.appState.PROCESSING_EVENTS.ERROR,
+            this.appState.PROCESSING_EVENTS.DEBUG_ERROR,
             "Extra processing was canceled by the user."
           )
         } else {
           console.error("Processing error:", error)
           mainWindow.webContents.send(
-            this.appState.PROCESSING_EVENTS.ERROR,
+            this.appState.PROCESSING_EVENTS.DEBUG_ERROR,
             error.message
           )
         }
@@ -533,10 +534,7 @@ export class ProcessingHelper {
 
     const mainWindow = this.appState.getMainWindow()
     if (wasCancelled && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(
-        this.appState.PROCESSING_EVENTS.ERROR,
-        "Processing was canceled by the user."
-      )
+      mainWindow.webContents.send("Processing was canceled by the user.")
     }
   }
 }
