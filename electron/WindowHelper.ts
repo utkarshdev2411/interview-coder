@@ -35,7 +35,7 @@ export class WindowHelper {
     const workArea = primaryDisplay.workAreaSize
 
     // Ensure width doesn't exceed screen width and height is reasonable
-    const newWidth = Math.min(Math.max(width, 300), workArea.width) // minimum 300px width
+    const newWidth = Math.min(Math.max(width, 750), workArea.width) // minimum 300px width
     const newHeight = Math.ceil(height)
 
     // Center the window horizontally if it would go off screen
@@ -88,7 +88,7 @@ export class WindowHelper {
     }
 
     this.mainWindow = new BrowserWindow(windowSettings)
-    this.mainWindow.webContents.openDevTools()
+    // this.mainWindow.webContents.openDevTools()
     this.mainWindow.setContentProtection(true)
     this.mainWindow.setHiddenInMissionControl(true)
 

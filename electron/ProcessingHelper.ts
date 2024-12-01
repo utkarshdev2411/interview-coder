@@ -19,7 +19,7 @@ const baseUrl = isDev
 console.log({ baseUrl })
 const isDevTest = process.env.IS_DEV_TEST === "true"
 
-const MOCK_API_WAIT_TIME = Number(process.env.MOCK_API_WAIT_TIME) || 2000 // in milliseconds
+const MOCK_API_WAIT_TIME = Number(process.env.MOCK_API_WAIT_TIME) || 500 // in milliseconds
 
 console.log({ isDev, isDevTest, MOCK_API_WAIT_TIME })
 
@@ -470,7 +470,8 @@ export class ProcessingHelper {
                   "Second thought about the problem"
                 ],
                 old_code: "// Sample code implementation\nfunction solve() { }",
-                new_code: "// Sample code implementation\nfunction solve() { }",
+                new_code:
+                  "// Sample code implementation\nfunction solve2() { }",
                 time_complexity:
                   "O(n) because we iterate through the array once",
                 space_complexity: "O(1) because we use constant extra space"

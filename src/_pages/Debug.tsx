@@ -13,83 +13,148 @@ import {
   ToastVariant
 } from "../components/ui/toast"
 import ExtraScreenshotsQueueHelper from "../components/Solutions/ExtraScreenshotsQueueHelper"
+import { diffLines } from "diff"
+
+type DiffLine = {
+  value: string
+  added?: boolean
+  removed?: boolean
+}
 
 const CodeComparisonSection = ({
-  previousCode,
+  oldCode,
   newCode,
   isLoading
 }: {
-  previousCode: string | null
+  oldCode: string | null
   newCode: string | null
   isLoading: boolean
-}) => (
-  <div className="space-y-2">
-    <h2 className="text-[13px] font-medium text-white tracking-wide">
-      Code Comparison
-    </h2>
-    {isLoading ? (
-      <div className="space-y-1.5">
-        <div className="mt-4 flex">
-          <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
-            Loading code comparison...
-          </p>
-        </div>
-      </div>
-    ) : (
-      <div className="flex flex-col lg:flex-row gap-4">
-        {/* Previous Code */}
-        <div className="flex-1">
-          <h3 className="text-[12px] font-medium text-gray-200 mb-2">
-            Previous Code
-          </h3>
-          <div className="overflow-auto">
-            <SyntaxHighlighter
-              showLineNumbers
-              language="python"
-              style={dracula}
-              customStyle={{
-                maxWidth: "550px",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word"
-              }}
-              wrapLongLines={true}
-            >
-              {previousCode || "No previous code available."}
-            </SyntaxHighlighter>
-          </div>
-        </div>
-        {/* New Code */}
-        <div className="flex-1">
-          <h3 className="text-[12px] font-medium text-gray-200 mb-2">
-            New Code
-          </h3>
-          <div className="overflow-auto">
-            <SyntaxHighlighter
-              showLineNumbers
-              language="python"
-              style={dracula}
-              customStyle={{
-                maxWidth: "550px",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word"
-              }}
-              wrapLongLines={true}
-            >
-              {newCode || "No new code generated yet."}
-            </SyntaxHighlighter>
-          </div>
-        </div>
-      </div>
-    )}
-  </div>
-)
+}) => {
+  const computeDiff = () => {
+    if (!oldCode || !newCode) return { leftLines: [], rightLines: [] }
 
-const Debug: React.FC = () => {
+    // Generate the diff
+    const diff = diffLines(oldCode, newCode, {
+      newlineIsToken: true,
+      ignoreWhitespace: false
+    })
+
+    // Process the diff to create parallel arrays
+    const leftLines: DiffLine[] = []
+    const rightLines: DiffLine[] = []
+
+    diff.forEach((part) => {
+      if (part.added) {
+        // Add empty lines to left side
+        leftLines.push(...Array(part.count || 0).fill({ value: "" }))
+        // Add new lines to right side
+        rightLines.push(
+          ...part.value.split("\n").map((line) => ({
+            value: line,
+            added: true
+          }))
+        )
+      } else if (part.removed) {
+        // Add removed lines to left side
+        leftLines.push(
+          ...part.value.split("\n").map((line) => ({
+            value: line,
+            removed: true
+          }))
+        )
+        // Add empty lines to right side
+        rightLines.push(...Array(part.count || 0).fill({ value: "" }))
+      } else {
+        // Add unchanged lines to both sides
+        const lines = part.value.split("\n")
+        leftLines.push(...lines.map((line) => ({ value: line })))
+        rightLines.push(...lines.map((line) => ({ value: line })))
+      }
+    })
+
+    return { leftLines, rightLines }
+  }
+
+  const { leftLines, rightLines } = computeDiff()
+
+  return (
+    <div className="space-y-1.5">
+      <h2 className="text-[13px] font-medium text-white tracking-wide">
+        Code Comparison
+      </h2>
+      {isLoading ? (
+        <div className="space-y-1">
+          <div className="mt-3 flex">
+            <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
+              Loading code comparison...
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-row gap-0.5 bg-[#161b22] rounded-lg overflow-hidden max-w-[650px]">
+          {/* Previous Code */}
+          <div className="flex-1 border-r border-gray-700 min-w-0">
+            <div className="bg-[#2d333b] px-3 py-1.5">
+              <h3 className="text-[11px] font-medium text-gray-200">
+                Previous Version
+              </h3>
+            </div>
+            <div className="p-3 overflow-x-auto">
+              {leftLines.map((line: any, i: number) => (
+                <div
+                  key={i}
+                  className={`flex ${line.removed ? "bg-red-900/20" : ""}`}
+                >
+                  <span className="w-5 flex-shrink-0 text-red-500 select-none pr-1.5">
+                    {line.removed ? "-" : " "}
+                  </span>
+                  <pre className="font-mono text-[13px] text-gray-300 whitespace-pre-wrap break-all">
+                    {line.value}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* New Code */}
+          <div className="flex-1 min-w-0">
+            <div className="bg-[#2d333b] px-3 py-1.5">
+              <h3 className="text-[11px] font-medium text-gray-200">
+                New Version
+              </h3>
+            </div>
+            <div className="p-3 overflow-x-auto">
+              {rightLines.map((line: any, i: number) => (
+                <div
+                  key={i}
+                  className={`flex ${line.added ? "bg-green-900/20" : ""}`}
+                >
+                  <span className="w-5 flex-shrink-0 text-green-500 select-none pr-1.5">
+                    {line.added ? "+" : " "}
+                  </span>
+                  <pre className="font-mono text-[13px] text-gray-300 whitespace-pre-wrap break-all">
+                    {line.value}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface DebugProps {
+  isProcessing: boolean
+  setIsProcessing: (isProcessing: boolean) => void
+}
+
+const Debug: React.FC<DebugProps> = ({ isProcessing, setIsProcessing }) => {
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const [processing, setProcessing] = useState(false)
-  const [previousCode, setPreviousCode] = useState<string | null>(null)
+  const [oldCode, setOldCode] = useState<string | null>(null)
   const [newCode, setNewCode] = useState<string | null>(null)
   const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
   const [timeComplexityData, setTimeComplexityData] = useState<string | null>(
@@ -152,6 +217,47 @@ const Debug: React.FC = () => {
   }
 
   useEffect(() => {
+    // Try to get the new solution data from cache first
+    const newSolution = queryClient.getQueryData(["new_solution"]) as {
+      old_code: string
+      new_code: string
+      thoughts: string[]
+      time_complexity: string
+      space_complexity: string
+    } | null
+
+    // If we have cached data, set all state variables to the cached data
+    if (newSolution) {
+      setOldCode(newSolution.old_code || null)
+      setNewCode(newSolution.new_code || null)
+      setThoughtsData(newSolution.thoughts || null)
+      setTimeComplexityData(newSolution.time_complexity || null)
+      setSpaceComplexityData(newSolution.space_complexity || null)
+      setIsProcessing(false) // Ensure processing is false since we have data
+    }
+
+    // Set up event listeners
+    const cleanupFunctions = [
+      window.electronAPI.onScreenshotTaken(() => refetch()),
+      window.electronAPI.onResetView(() => refetch()),
+      window.electronAPI.onDebugSuccess(() => {
+        setIsProcessing(false) //all the other stuff ahapepns in the parent component, so we just need to do this.
+      }),
+      window.electronAPI.onDebugStart(() => {
+        setIsProcessing(true)
+      }),
+      window.electronAPI.onDebugError((error: string) => {
+        showToast(
+          "Processing Failed",
+          "There was an error debugging your code.",
+          "error"
+        )
+        setIsProcessing(false)
+        console.error("Processing error:", error)
+      })
+    ]
+
+    // Set up resize observer
     const updateDimensions = () => {
       if (contentRef.current) {
         let contentHeight = contentRef.current.scrollHeight
@@ -166,103 +272,17 @@ const Debug: React.FC = () => {
       }
     }
 
-    // Initialize resize observer
     const resizeObserver = new ResizeObserver(updateDimensions)
     if (contentRef.current) {
       resizeObserver.observe(contentRef.current)
     }
     updateDimensions()
 
-    // Set up event listeners
-    //on load, we'll set the state data of all our state variables to use the query cache data for new_solution
-    const cleanupFunctions = [
-      window.electronAPI.onScreenshotTaken(() => refetch()),
-      window.electronAPI.onResetView(() => refetch()),
-      // when debugging starts for the first time or any time after that, you'll only set the loading state to true
-      window.electronAPI.onDebugStart(() => {
-        setProcessing(true)
-      }),
-      // this entire component only renders if there's a new_solution in the cache, so if there's an error, we'll just show a toast and set the processing state to false
-      window.electronAPI.onDebugError((error: string) => {
-        showToast(
-          "Processing Failed",
-          "There was an error debugging your code.",
-          "error"
-        )
-
-        setProcessing(false)
-
-        console.error("Processing error:", error)
-      })
-    ]
-
     return () => {
       resizeObserver.disconnect()
       cleanupFunctions.forEach((cleanup) => cleanup())
     }
-  }, [isTooltipVisible, tooltipHeight])
-
-  useEffect(() => {
-    // Fetch initial data for both previous and new solutions
-    const previousSolution = queryClient.getQueryData(["solution"]) as {
-      code: string
-      thoughts: string[]
-      time_complexity: string
-      space_complexity: string
-    } | null
-
-    const newSolution = queryClient.getQueryData(["new_solution"]) as {
-      new_code: string
-      thoughts: string[]
-      time_complexity: string
-      space_complexity: string
-    } | null
-
-    // Set previous code from solution cache
-    setPreviousCode(previousSolution?.code || null)
-
-    // Set all state variables from new_solution cache if it exists
-    if (newSolution) {
-      setNewCode(newSolution.new_code || null)
-      setThoughtsData(newSolution.thoughts || null)
-      setTimeComplexityData(newSolution.time_complexity || null)
-      setSpaceComplexityData(newSolution.space_complexity || null)
-    }
-
-    // Subscribe to changes in both solution caches
-    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event?.query.queryKey[0] === "solution") {
-        const solution = queryClient.getQueryData(["solution"]) as {
-          code: string
-          thoughts: string[]
-          time_complexity: string
-          space_complexity: string
-        } | null
-
-        if (solution) {
-          setPreviousCode(solution.code)
-        }
-      }
-
-      if (event?.query.queryKey[0] === "new_solution") {
-        const newSolution = queryClient.getQueryData(["new_solution"]) as {
-          new_code: string
-          thoughts: string[]
-          time_complexity: string
-          space_complexity: string
-        } | null
-
-        if (newSolution) {
-          setNewCode(newSolution.new_code)
-          setThoughtsData(newSolution.thoughts)
-          setTimeComplexityData(newSolution.time_complexity)
-          setSpaceComplexityData(newSolution.space_complexity)
-        }
-      }
-    })
-
-    return () => unsubscribe()
-  }, [queryClient])
+  }, [queryClient, isTooltipVisible, tooltipHeight])
 
   const handleTooltipVisibilityChange = (visible: boolean, height: number) => {
     setIsTooltipVisible(visible)
@@ -270,7 +290,7 @@ const Debug: React.FC = () => {
   }
 
   return (
-    <div ref={contentRef} className="relative space-y-3 pb-8">
+    <div ref={contentRef} className="relative space-y-3 pb-8 max-w-[700px]">
       <Toast
         open={toastOpen}
         onOpenChange={setToastOpen}
@@ -288,7 +308,7 @@ const Debug: React.FC = () => {
             <ScreenshotQueue
               screenshots={extraScreenshots}
               onDeleteScreenshot={handleDeleteExtraScreenshot}
-              isLoading={false}
+              isLoading={isProcessing}
             />
           </div>
         </div>
@@ -306,7 +326,7 @@ const Debug: React.FC = () => {
           <div className="px-4 py-3 space-y-4">
             {/* Thoughts Section */}
             <ContentSection
-              title="Thoughts"
+              title="What I Changed"
               content={
                 thoughtsData && (
                   <div className="space-y-3">
@@ -326,9 +346,9 @@ const Debug: React.FC = () => {
 
             {/* Code Comparison Section */}
             <CodeComparisonSection
-              previousCode={previousCode}
+              oldCode={oldCode}
               newCode={newCode}
-              isLoading={!previousCode || !newCode}
+              isLoading={!oldCode || !newCode}
             />
 
             {/* Complexity Section */}

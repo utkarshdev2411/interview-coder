@@ -95,7 +95,7 @@ export const ComplexitySection = ({
 }) => (
   <div className="space-y-2">
     <h2 className="text-[13px] font-medium text-white tracking-wide">
-      Complexity
+      Complexity (Updated)
     </h2>
     {isLoading ? (
       <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
@@ -320,9 +320,6 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
           queryClient.getQueryData(["problem_statement"]) || null
         )
       }
-      if (event?.query.queryKey[0] === "thoughts") {
-        setThoughtsData(queryClient.getQueryData(["thoughts"]) || null)
-      }
       if (event?.query.queryKey[0] === "solution") {
         const solution = queryClient.getQueryData(["solution"]) as {
           code: string
@@ -331,18 +328,10 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
           space_complexity: string
         } | null
 
-        if (solution) {
-          const { code, thoughts, time_complexity, space_complexity } = solution
-          setSolutionData(code)
-          setThoughtsData(thoughts)
-          setTimeComplexityData(time_complexity)
-          setSpaceComplexityData(space_complexity)
-        } else {
-          setSolutionData(null)
-          setThoughtsData(null)
-          setTimeComplexityData(null)
-          setSpaceComplexityData(null)
-        }
+        setSolutionData(solution?.code ?? null)
+        setThoughtsData(solution?.thoughts ?? null)
+        setTimeComplexityData(solution?.time_complexity ?? null)
+        setSpaceComplexityData(solution?.space_complexity ?? null)
       }
     })
     return () => unsubscribe()
@@ -357,7 +346,10 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
     <>
       {queryClient.getQueryData(["new_solution"]) ? (
         <>
-          <Debug />
+          <Debug
+            isProcessing={debugProcessing}
+            setIsProcessing={setDebugProcessing}
+          />
         </>
       ) : (
         <div ref={contentRef} className="relative space-y-3 pb-8">

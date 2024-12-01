@@ -61,9 +61,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const cleanup = window.electronAPI.onResetView(() => {
       console.log("Received 'reset-view' message from main process.")
-      setView("queue")
-      console.log("View reset to 'queue' via Command+R shortcut.")
       queryClient.invalidateQueries(["screenshots"])
+      queryClient.invalidateQueries(["problem_statement"])
+      queryClient.invalidateQueries(["solution"])
+      queryClient.invalidateQueries(["new_solution"])
+      setView("queue")
     })
 
     return () => {
@@ -144,11 +146,7 @@ const App: React.FC = () => {
   }, [])
 
   return (
-    <div
-      ref={containerRef}
-      className="min-h-0 "
-      style={{ width: "680px" }} // Match your electron window width
-    >
+    <div ref={containerRef} className="min-h-0 ">
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <div className="p-4">
@@ -157,7 +155,7 @@ const App: React.FC = () => {
             ) : view === "solutions" ? (
               <Solutions setView={setView} />
             ) : (
-              <Debug setView={setView} />
+              <></>
             )}
           </div>
           <ToastViewport />
