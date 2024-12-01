@@ -15,7 +15,7 @@ import {
 import { ProblemStatementData } from "../types/solutions"
 import ExtraScreenshotsQueueHelper from "../components/Solutions/ExtraScreenshotsQueueHelper"
 
-const ContentSection = ({
+export const ContentSection = ({
   title,
   content,
   isLoading
@@ -66,6 +66,7 @@ const SolutionSection = ({
     ) : (
       <div className="overflow-auto">
         <SyntaxHighlighter
+          showLineNumbers
           language="python"
           style={dracula}
           customStyle={{
@@ -82,7 +83,7 @@ const SolutionSection = ({
   </div>
 )
 
-const ComplexitySection = ({
+export const ComplexitySection = ({
   timeComplexity,
   spaceComplexity,
   isLoading
@@ -96,10 +97,9 @@ const ComplexitySection = ({
       Complexity
     </h2>
     {isLoading ? (
-      <div className="mt-4 flex">
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-100"></div>
-        <p className="text-sm text-gray-100">Calculating complexity...</p>
-      </div>
+      <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
+        Calculating complexity...
+      </p>
     ) : (
       <div className="space-y-1">
         <div className="flex items-start gap-2 text-[13px] leading-[1.4] text-gray-100">
@@ -212,8 +212,15 @@ const Solutions: React.FC = () => {
     // Set up event listeners
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
-      window.electronAPI.onProcessingStart(() => {
+      window.electronAPI.onInitialProcessingStart(() => {
         // Every time processing starts, reset relevant states
+        setSolutionData(null)
+        setThoughtsData(null)
+        setTimeComplexityData(null)
+        setSpaceComplexityData(null)
+      }),
+      window.electronAPI.onDebugProcessingStart(() => {
+        //everytime we debug, we should temporarily set everything to null
         setSolutionData(null)
         setThoughtsData(null)
         setTimeComplexityData(null)

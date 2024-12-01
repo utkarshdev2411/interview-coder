@@ -19,7 +19,8 @@ interface ElectronAPI {
   ) => () => void
   onSolutionsReady: (callback: (solutions: string) => void) => () => void
   onResetView: (callback: () => void) => () => void
-  onProcessingStart: (callback: () => void) => () => void
+  onInitialProcessingStart: (callback: () => void) => () => void
+  onDebugProcessingStart: (callback: () => void) => () => void
   onProcessingSuccess: (callback: (data: any) => void) => () => void
   onProcessingExtraSuccess: (callback: (data: any) => void) => () => void
   onProcessingError: (callback: (error: string) => void) => () => void
@@ -32,7 +33,8 @@ interface ElectronAPI {
 }
 
 export const PROCESSING_EVENTS = {
-  START: "processing-start",
+  INITIAL_START: "initial-processing-start",
+  DEBUG_START: "debug-processing-start",
   SUCCESS: "processing-success",
   ERROR: "processing-error",
   UNAUTHORIZED: "procesing-unauthorized",
@@ -76,11 +78,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener("reset-view", subscription)
     }
   },
-  onProcessingStart: (callback: () => void) => {
+  onInitialProcessingStart: (callback: () => void) => {
     const subscription = () => callback()
-    ipcRenderer.on(PROCESSING_EVENTS.START, subscription)
+    ipcRenderer.on(PROCESSING_EVENTS.INITIAL_START, subscription)
     return () => {
-      ipcRenderer.removeListener(PROCESSING_EVENTS.START, subscription)
+      ipcRenderer.removeListener(PROCESSING_EVENTS.INITIAL_START, subscription)
+    }
+  },
+  onDebugProcessingStart: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on(PROCESSING_EVENTS.DEBUG_START, subscription)
+    return () => {
+      ipcRenderer.removeListener(PROCESSING_EVENTS.DEBUG_START, subscription)
     }
   },
   onProcessingSuccess: (callback: (data: any) => void) => {

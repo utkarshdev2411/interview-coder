@@ -49,7 +49,7 @@ export class ProcessingHelper {
         return
       }
 
-      mainWindow.webContents.send(this.appState.PROCESSING_EVENTS.START)
+      mainWindow.webContents.send(this.appState.PROCESSING_EVENTS.INITIAL_START)
       this.appState.setView("solutions")
 
       // Initialize AbortController
@@ -110,7 +110,7 @@ export class ProcessingHelper {
         )
         return
       }
-      mainWindow.webContents.send(this.appState.PROCESSING_EVENTS.START)
+      mainWindow.webContents.send(this.appState.PROCESSING_EVENTS.DEBUG_START)
 
       // Initialize AbortController
       this.currentExtraProcessingAbortController = new AbortController()

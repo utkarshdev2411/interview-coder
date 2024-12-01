@@ -11,7 +11,7 @@ import {
 import QueueHelper from "../components/Queue/QueueHelper"
 
 interface QueueProps {
-  setView: React.Dispatch<React.SetStateAction<"queue" | "solutions">>
+  setView: React.Dispatch<React.SetStateAction<"queue" | "solutions" | "debug">>
 }
 
 const Queue: React.FC<QueueProps> = ({ setView }) => {

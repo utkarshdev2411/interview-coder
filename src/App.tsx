@@ -4,6 +4,7 @@ import { ToastViewport } from "@radix-ui/react-toast"
 import { useEffect, useRef, useState } from "react"
 import Solutions from "./_pages/Solutions"
 import { QueryClient, QueryClientProvider } from "react-query"
+import Debug from "./_pages/Debug"
 
 declare global {
   interface Window {
@@ -20,7 +21,8 @@ declare global {
       onScreenshotTaken: (
         callback: (data: { path: string; preview: string }) => void
       ) => () => void
-      onProcessingStart: (callback: () => void) => () => void
+      onInitialProcessingStart: (callback: () => void) => () => void
+      onDebugProcessingStart: (callback: () => void) => () => void
       onProcessingSuccess: (callback: (data: any) => void) => () => void
       onProcessingExtraSuccess: (callback: (data: any) => void) => () => void
       onProcessingError: (callback: (error: string) => void) => () => void
@@ -45,7 +47,7 @@ const queryClient = new QueryClient({
 })
 
 const App: React.FC = () => {
-  const [view, setView] = useState<"queue" | "solutions">("queue")
+  const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Effect for height monitoring
@@ -102,9 +104,13 @@ const App: React.FC = () => {
   }, [view]) // Re-run when view changes
   useEffect(() => {
     const cleanupFunctions = [
-      window.electronAPI.onProcessingStart(() => {
+      window.electronAPI.onInitialProcessingStart(() => {
         setView("solutions")
         console.log("starting processing")
+      }),
+      window.electronAPI.onDebugProcessingStart(() => {
+        setView("debug")
+        console.log("starting debug processing")
       }),
       window.electronAPI.onUnauthorized(() => {
         queryClient.removeQueries(["screenshots"])
@@ -143,7 +149,13 @@ const App: React.FC = () => {
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <div className="p-4">
-            {view === "queue" ? <Queue setView={setView} /> : <Solutions />}
+            {view === "queue" ? (
+              <Queue setView={setView} />
+            ) : view === "solutions" ? (
+              <Solutions />
+            ) : (
+              <Debug setView={setView} />
+            )}
           </div>
           <ToastViewport />
         </ToastProvider>

@@ -26,6 +26,8 @@ export class AppState {
 
   // Processing events
   public readonly PROCESSING_EVENTS = {
+    INITIAL_START: "initial-processing-start",
+    DEBUG_START: "debug-processing-start",
     START: "processing-start",
     SUCCESS: "processing-success",
     ERROR: "processing-error",
