@@ -24,6 +24,8 @@ export class AppState {
     test_cases: Array<Record<string, any>>
   } | null = null // Allow null
 
+  private hasDebugged: boolean = false
+
   // Processing events
   public readonly PROCESSING_EVENTS = {
     //global states
@@ -43,8 +45,8 @@ export class AppState {
   } as const
 
   constructor() {
-    // Initialize WindowHelper
-    this.windowHelper = new WindowHelper()
+    // Initialize WindowHelper with this
+    this.windowHelper = new WindowHelper(this)
 
     // Initialize ScreenshotHelper
     this.screenshotHelper = new ScreenshotHelper(this.view)
@@ -173,6 +175,14 @@ export class AppState {
   }
   public moveWindowUp(): void {
     this.windowHelper.moveWindowUp()
+  }
+
+  public setHasDebugged(value: boolean): void {
+    this.hasDebugged = value
+  }
+
+  public getHasDebugged(): boolean {
+    return this.hasDebugged
   }
 }
 

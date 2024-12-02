@@ -42,7 +42,6 @@ export const ContentSection = ({
     )}
   </div>
 )
-
 const SolutionSection = ({
   title,
   content,
@@ -65,15 +64,17 @@ const SolutionSection = ({
         </div>
       </div>
     ) : (
-      <div className="overflow-auto">
+      <div className="w-full">
         <SyntaxHighlighter
           showLineNumbers
           language="python"
           style={dracula}
           customStyle={{
-            maxWidth: "550px",
+            maxWidth: "100%",
+            margin: 0,
+            padding: "1rem",
             whiteSpace: "pre-wrap",
-            wordBreak: "break-word"
+            wordBreak: "break-all"
           }}
           wrapLongLines={true}
         >
@@ -149,6 +150,8 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const [tooltipHeight, setTooltipHeight] = useState(0)
 
+  const [isResetting, setIsResetting] = useState(false)
+
   const { data: extraScreenshots = [], refetch } = useQuery({
     queryKey: ["extras"],
     queryFn: async () => {
@@ -217,7 +220,22 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
     // Set up event listeners
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
-      window.electronAPI.onResetView(() => refetch()),
+      window.electronAPI.onResetView(() => {
+        // Set resetting state first
+        setIsResetting(true)
+
+        // Clear the queries
+        queryClient.removeQueries(["solution"])
+        queryClient.removeQueries(["new_solution"])
+
+        // Reset other states
+        refetch()
+
+        // After a small delay, clear the resetting state
+        setTimeout(() => {
+          setIsResetting(false)
+        }, 0)
+      }),
       window.electronAPI.onSolutionStart(() => {
         // Every time processing starts, reset relevant states
         setSolutionData(null)
@@ -281,6 +299,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
       //the first time debugging works, we'll set the view to debug and populate the cache with the data
       window.electronAPI.onDebugSuccess((data) => {
         console.log({ debug_data: data })
+
         queryClient.setQueryData(["new_solution"], data.solution)
         setDebugProcessing(false)
       }),
@@ -344,7 +363,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
 
   return (
     <>
-      {queryClient.getQueryData(["new_solution"]) ? (
+      {!isResetting && queryClient.getQueryData(["new_solution"]) ? (
         <>
           <Debug
             isProcessing={debugProcessing}
@@ -352,7 +371,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
           />
         </>
       ) : (
-        <div ref={contentRef} className="relative space-y-3 pb-8">
+        <div ref={contentRef} className="relative space-y-3 px-4 py-3">
           <Toast
             open={toastOpen}
             onOpenChange={setToastOpen}
@@ -384,10 +403,10 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
             onTooltipVisibilityChange={handleTooltipVisibilityChange}
           />
 
-          {/* Main Content */}
-          <div className="w-full text-sm text-black  bg-black/60 rounded-md">
+          {/* Main Content - Modified width constraints */}
+          <div className="w-full text-sm text-black bg-black/60 rounded-md">
             <div className="rounded-lg overflow-hidden">
-              <div className="px-4 py-3 space-y-4">
+              <div className="px-4 py-3 space-y-4 max-w-full">
                 {!solutionData && (
                   <>
                     <ContentSection

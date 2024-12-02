@@ -146,18 +146,16 @@ const App: React.FC = () => {
   }, [])
 
   return (
-    <div ref={containerRef} className="min-h-0 ">
+    <div ref={containerRef} className="min-h-0">
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <div className="p-4">
-            {view === "queue" ? (
-              <Queue setView={setView} />
-            ) : view === "solutions" ? (
-              <Solutions setView={setView} />
-            ) : (
-              <></>
-            )}
-          </div>
+          {view === "queue" ? (
+            <Queue setView={setView} />
+          ) : view === "solutions" ? (
+            <Solutions setView={setView} />
+          ) : (
+            <></>
+          )}
           <ToastViewport />
         </ToastProvider>
       </QueryClientProvider>

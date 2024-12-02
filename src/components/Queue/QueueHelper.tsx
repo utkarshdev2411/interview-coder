@@ -41,15 +41,14 @@ const QueueHelper: React.FC<QueueHelperProps> = ({
       {isTooltipVisible && (
         <div ref={tooltipRef} className="absolute top-full right-0 mt-2 w-80">
           <div className="p-3 text-xs bg-black/80 backdrop-blur-md rounded-lg border border-white/10 text-white/90 shadow-lg">
-            {/* Tooltip content */}
             <div className="space-y-4">
-              <h3 className="font-medium">Keyboard Shortcuts</h3>
+              <h3 className="font-medium truncate">Keyboard Shortcuts</h3>
               <div className="space-y-3">
                 {/* Toggle Command */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span>Toggle Window</span>
-                    <div className="flex gap-1">
+                    <span className="truncate">Toggle Window</span>
+                    <div className="flex gap-1 flex-shrink-0">
                       <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] leading-none">
                         ⌘
                       </span>
@@ -58,15 +57,15 @@ const QueueHelper: React.FC<QueueHelperProps> = ({
                       </span>
                     </div>
                   </div>
-                  <p className="text-[10px] leading-relaxed text-white/70">
+                  <p className="text-[10px] leading-relaxed text-white/70 truncate">
                     Show or hide this window.
                   </p>
                 </div>
                 {/* Screenshot Command */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span>Take Screenshot</span>
-                    <div className="flex gap-1">
+                    <span className="truncate">Take Screenshot</span>
+                    <div className="flex gap-1 flex-shrink-0">
                       <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] leading-none">
                         ⌘
                       </span>
@@ -75,7 +74,7 @@ const QueueHelper: React.FC<QueueHelperProps> = ({
                       </span>
                     </div>
                   </div>
-                  <p className="text-[10px] leading-relaxed text-white/70">
+                  <p className="text-[10px] leading-relaxed text-white/70 truncate">
                     Take a screenshot of the problem description. The tool will
                     extract and analyze the problem. The 5 latest screenshots
                     are saved.
@@ -85,8 +84,8 @@ const QueueHelper: React.FC<QueueHelperProps> = ({
                 {/* Solve Command */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span>Solve Problem</span>
-                    <div className="flex gap-1">
+                    <span className="truncate">Solve Problem</span>
+                    <div className="flex gap-1 flex-shrink-0">
                       <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] leading-none">
                         ⌘
                       </span>
@@ -95,7 +94,7 @@ const QueueHelper: React.FC<QueueHelperProps> = ({
                       </span>
                     </div>
                   </div>
-                  <p className="text-[10px] leading-relaxed text-white/70">
+                  <p className="text-[10px] leading-relaxed text-white/70 truncate">
                     Generate a solution based on the current problem.
                   </p>
                 </div>

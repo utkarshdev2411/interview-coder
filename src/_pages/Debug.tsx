@@ -21,6 +21,14 @@ type DiffLine = {
   removed?: boolean
 }
 
+const syntaxHighlighterStyles = {
+  ".syntax-line": {
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    overflowWrap: "break-word"
+  }
+} as const
+
 const CodeComparisonSection = ({
   oldCode,
   newCode,
@@ -47,26 +55,34 @@ const CodeComparisonSection = ({
       if (part.added) {
         // Add empty lines to left side
         leftLines.push(...Array(part.count || 0).fill({ value: "" }))
-        // Add new lines to right side
+        // Add new lines to right side, filter out empty lines at the end
         rightLines.push(
-          ...part.value.split("\n").map((line) => ({
-            value: line,
-            added: true
-          }))
+          ...part.value
+            .split("\n")
+            .filter((line, i, arr) => i < arr.length - 1 || line !== "")
+            .map((line) => ({
+              value: line,
+              added: true
+            }))
         )
       } else if (part.removed) {
-        // Add removed lines to left side
+        // Add removed lines to left side, filter out empty lines at the end
         leftLines.push(
-          ...part.value.split("\n").map((line) => ({
-            value: line,
-            removed: true
-          }))
+          ...part.value
+            .split("\n")
+            .filter((line, i, arr) => i < arr.length - 1 || line !== "")
+            .map((line) => ({
+              value: line,
+              removed: true
+            }))
         )
         // Add empty lines to right side
         rightLines.push(...Array(part.count || 0).fill({ value: "" }))
       } else {
-        // Add unchanged lines to both sides
-        const lines = part.value.split("\n")
+        // Add unchanged lines to both sides, filter out empty lines at the end
+        const lines = part.value
+          .split("\n")
+          .filter((line, i, arr) => i < arr.length - 1 || line !== "")
         leftLines.push(...lines.map((line) => ({ value: line })))
         rightLines.push(...lines.map((line) => ({ value: line })))
       }
@@ -91,52 +107,80 @@ const CodeComparisonSection = ({
           </div>
         </div>
       ) : (
-        <div className="flex flex-row gap-0.5 bg-[#161b22] rounded-lg overflow-hidden max-w-[650px]">
+        <div className="flex flex-row gap-0.5 bg-[#161b22] rounded-lg overflow-hidden">
           {/* Previous Code */}
-          <div className="flex-1 border-r border-gray-700 min-w-0">
+          <div className="w-1/2 border-r border-gray-700">
             <div className="bg-[#2d333b] px-3 py-1.5">
               <h3 className="text-[11px] font-medium text-gray-200">
                 Previous Version
               </h3>
             </div>
             <div className="p-3 overflow-x-auto">
-              {leftLines.map((line: any, i: number) => (
-                <div
-                  key={i}
-                  className={`flex ${line.removed ? "bg-red-900/20" : ""}`}
-                >
-                  <span className="w-5 flex-shrink-0 text-red-500 select-none pr-1.5">
-                    {line.removed ? "-" : " "}
-                  </span>
-                  <pre className="font-mono text-[13px] text-gray-300 whitespace-pre-wrap break-all">
-                    {line.value}
-                  </pre>
-                </div>
-              ))}
+              <SyntaxHighlighter
+                language="typescript"
+                style={dracula}
+                customStyle={{
+                  background: "transparent",
+                  margin: 0,
+                  padding: 0,
+                  fontSize: "13px",
+                  width: "100%"
+                }}
+                wrapLines={true}
+                showLineNumbers={true}
+                lineProps={(lineNumber) => {
+                  const line = leftLines[lineNumber - 1]
+                  return {
+                    style: {
+                      display: "block",
+                      backgroundColor: line?.removed
+                        ? "rgba(139, 0, 0, 0.2)"
+                        : "transparent"
+                    },
+                    className: "syntax-line"
+                  }
+                }}
+              >
+                {leftLines.map((line) => line.value).join("\n")}
+              </SyntaxHighlighter>
             </div>
           </div>
 
           {/* New Code */}
-          <div className="flex-1 min-w-0">
+          <div className="w-1/2">
             <div className="bg-[#2d333b] px-3 py-1.5">
               <h3 className="text-[11px] font-medium text-gray-200">
                 New Version
               </h3>
             </div>
             <div className="p-3 overflow-x-auto">
-              {rightLines.map((line: any, i: number) => (
-                <div
-                  key={i}
-                  className={`flex ${line.added ? "bg-green-900/20" : ""}`}
-                >
-                  <span className="w-5 flex-shrink-0 text-green-500 select-none pr-1.5">
-                    {line.added ? "+" : " "}
-                  </span>
-                  <pre className="font-mono text-[13px] text-gray-300 whitespace-pre-wrap break-all">
-                    {line.value}
-                  </pre>
-                </div>
-              ))}
+              <SyntaxHighlighter
+                language="typescript"
+                style={dracula}
+                customStyle={{
+                  background: "transparent",
+                  margin: 0,
+                  padding: 0,
+                  fontSize: "13px",
+                  width: "100%"
+                }}
+                wrapLines={true}
+                showLineNumbers={true}
+                lineProps={(lineNumber) => {
+                  const line = rightLines[lineNumber - 1]
+                  return {
+                    style: {
+                      display: "block",
+                      backgroundColor: line?.added
+                        ? "rgba(0, 139, 0, 0.2)"
+                        : "transparent"
+                    },
+                    className: "syntax-line"
+                  }
+                }}
+              >
+                {rightLines.map((line) => line.value).join("\n")}
+              </SyntaxHighlighter>
             </div>
           </div>
         </div>
@@ -290,7 +334,7 @@ const Debug: React.FC<DebugProps> = ({ isProcessing, setIsProcessing }) => {
   }
 
   return (
-    <div ref={contentRef} className="relative space-y-3 pb-8 max-w-[700px]">
+    <div ref={contentRef} className="relative space-y-3 px-4 py-3 ">
       <Toast
         open={toastOpen}
         onOpenChange={setToastOpen}

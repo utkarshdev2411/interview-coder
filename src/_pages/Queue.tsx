@@ -130,8 +130,8 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
   }
 
   return (
-    <div ref={contentRef} className={`bg-transparent w-fit`}>
-      <div className="px-4 py-3">
+    <div ref={contentRef} className={`bg-transparent w-1/2`}>
+      <div className="px-4 py-3 ">
         <Toast
           open={toastOpen}
           onOpenChange={setToastOpen}
@@ -144,6 +144,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
 
         <div className="space-y-3 w-fit">
           <ScreenshotQueue
+            isLoading={false}
             screenshots={screenshots}
             onDeleteScreenshot={handleDeleteScreenshot}
           />
@@ -165,7 +166,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
 
               {/* Screenshot */}
               <div className="flex items-center gap-2">
-                <span className="text-[11px] leading-none">
+                <span className="text-[11px] leading-none truncate">
                   {screenshots.length === 0
                     ? "Take first screenshot"
                     : "Screenshot"}
@@ -194,7 +195,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
                   </div>
                 </div>
               )}
-              <div className="mx-2 h-4 w-px bg-white/20" />
+              <div className="mx-2 h-4 bg-white/20" />
 
               <QueueHelper
                 onTooltipVisibilityChange={handleTooltipVisibilityChange}

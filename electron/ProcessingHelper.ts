@@ -136,6 +136,7 @@ export class ProcessingHelper {
         )
 
         if (result.success) {
+          this.appState.setHasDebugged(true)
           mainWindow.webContents.send(
             this.appState.PROCESSING_EVENTS.DEBUG_SUCCESS,
             result.data
@@ -183,7 +184,7 @@ export class ProcessingHelper {
         if (!isDevTest) {
           // First API call - extract problem
           problemResponse = await axios.post(
-            `${baseUrl}/extract_problem_temp`,
+            `${baseUrl}/extract_problem`,
             formData,
             {
               headers: {
@@ -337,7 +338,7 @@ export class ProcessingHelper {
 
         if (!isDevTest) {
           response = await axios.post(
-            `${baseUrl}/generate_solutions_temp`,
+            `${baseUrl}/generate_solutions`,
             { problem_info: problemInfo },
             {
               timeout: 300000,
@@ -439,19 +440,15 @@ export class ProcessingHelper {
         let response
 
         if (!isDevTest) {
-          response = await axios.post(
-            `${baseUrl}/debug_solutions_temp`,
-            formData,
-            {
-              headers: {
-                ...formData.getHeaders()
-              },
-              timeout: 300000,
-              maxContentLength: Infinity,
-              maxBodyLength: Infinity,
-              signal
-            }
-          )
+          response = await axios.post(`${baseUrl}/debug_solutions`, formData, {
+            headers: {
+              ...formData.getHeaders()
+            },
+            timeout: 300000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            signal
+          })
         } else {
           // Simulate API delay
           console.log(
@@ -539,6 +536,9 @@ export class ProcessingHelper {
       console.log("Canceled ongoing extra processing request.")
       wasCancelled = true
     }
+
+    // Reset hasDebugged flag
+    this.appState.setHasDebugged(false)
 
     const mainWindow = this.appState.getMainWindow()
     if (wasCancelled && mainWindow && !mainWindow.isDestroyed()) {

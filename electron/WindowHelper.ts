@@ -1,6 +1,7 @@
 // electron/WindowHelper.ts
 
 import { BrowserWindow, screen } from "electron"
+import { AppState } from "main"
 import path from "node:path"
 
 const isDev = process.env.NODE_ENV === "development"
@@ -14,6 +15,7 @@ export class WindowHelper {
   private isWindowVisible: boolean = false
   private windowPosition: { x: number; y: number } | null = null
   private windowSize: { width: number; height: number } | null = null
+  private appState: AppState
 
   // New properties for window movement
   private screenWidth: number = 0
@@ -22,7 +24,9 @@ export class WindowHelper {
   private currentX: number = 0
   private currentY: number = 0
 
-  constructor() {}
+  constructor(appState: AppState) {
+    this.appState = appState
+  }
 
   public setWindowDimensions(width: number, height: number): void {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) return
@@ -34,8 +38,13 @@ export class WindowHelper {
     const primaryDisplay = screen.getPrimaryDisplay()
     const workArea = primaryDisplay.workAreaSize
 
-    // Ensure width doesn't exceed screen width and height is reasonable
-    const newWidth = Math.min(Math.max(width, 750), workArea.width) // minimum 300px width
+    // Use 75% width if debugging has occurred, otherwise use 60%
+    const maxAllowedWidth = Math.floor(
+      workArea.width * (this.appState.getHasDebugged() ? 0.75 : 0.4)
+    )
+
+    // Ensure width doesn't exceed max allowed width and height is reasonable
+    const newWidth = Math.min(width + 32, maxAllowedWidth)
     const newHeight = Math.ceil(height)
 
     // Center the window horizontally if it would go off screen
@@ -68,12 +77,13 @@ export class WindowHelper {
     this.currentX = 0 // Start at the left
 
     const windowSettings: Electron.BrowserWindowConstructorOptions = {
-      width: 600,
-      height: workArea.height,
+      height: 600,
+      minWidth: undefined,
+      maxWidth: undefined,
       x: this.currentX,
       y: 0,
       webPreferences: {
-        nodeIntegration: false,
+        nodeIntegration: true,
         contextIsolation: true,
         preload: path.join(__dirname, "preload.js")
       },
