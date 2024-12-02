@@ -64,7 +64,7 @@ const ExtraScreenshotsQueueHelper: React.FC<
           </div>
           {extraScreenshots.length > 0 && (
             <div className="flex items-center gap-2 whitespace-nowrap">
-              <span className="text-[11px] leading-none">Re-solve/Debug</span>
+              <span className="text-[11px] leading-none">Debug</span>
               <div className="flex gap-1">
                 <button className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
                   ⌘
@@ -156,12 +156,10 @@ const ExtraScreenshotsQueueHelper: React.FC<
                           are saved.
                         </p>
                       </div>
-                      {/* Re-solve/Debug Command */}
+                      {/* Debug Command */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="whitespace-nowrap">
-                            Re-solve/Debug
-                          </span>
+                          <span className="whitespace-nowrap">Debug</span>
                           <div className="flex gap-1">
                             <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] leading-none">
                               ⌘
@@ -202,16 +200,12 @@ const ExtraScreenshotsQueueHelper: React.FC<
                               ⌘
                             </span>
                             <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] leading-none">
-                              ←
-                            </span>
-                            <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] leading-none">
-                              →
+                              ←↑↓→
                             </span>
                           </div>
                         </div>
                         <p className="text-[10px] leading-relaxed text-white/70 whitespace-nowrap truncate">
-                          Move the window to the left or right side of the
-                          screen.
+                          Move the window in any direction.
                         </p>
                       </div>
                     </div>

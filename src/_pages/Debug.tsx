@@ -41,10 +41,21 @@ const CodeComparisonSection = ({
   const computeDiff = () => {
     if (!oldCode || !newCode) return { leftLines: [], rightLines: [] }
 
+    // Normalize line endings and clean up the code
+    const normalizeCode = (code: string) => {
+      return code
+        .replace(/\r\n/g, "\n") // Convert Windows line endings to Unix
+        .replace(/\r/g, "\n") // Convert remaining carriage returns
+        .trim() // Remove leading/trailing whitespace
+    }
+
+    const normalizedOldCode = normalizeCode(oldCode)
+    const normalizedNewCode = normalizeCode(newCode)
+
     // Generate the diff
-    const diff = diffLines(oldCode, newCode, {
+    const diff = diffLines(normalizedOldCode, normalizedNewCode, {
       newlineIsToken: true,
-      ignoreWhitespace: false
+      ignoreWhitespace: true // Changed to true to better handle whitespace differences
     })
 
     // Process the diff to create parallel arrays
@@ -59,7 +70,7 @@ const CodeComparisonSection = ({
         rightLines.push(
           ...part.value
             .split("\n")
-            .filter((line, i, arr) => i < arr.length - 1 || line !== "")
+            .filter((line) => line.length > 0)
             .map((line) => ({
               value: line,
               added: true
@@ -70,7 +81,7 @@ const CodeComparisonSection = ({
         leftLines.push(
           ...part.value
             .split("\n")
-            .filter((line, i, arr) => i < arr.length - 1 || line !== "")
+            .filter((line) => line.length > 0)
             .map((line) => ({
               value: line,
               removed: true
@@ -79,10 +90,8 @@ const CodeComparisonSection = ({
         // Add empty lines to right side
         rightLines.push(...Array(part.count || 0).fill({ value: "" }))
       } else {
-        // Add unchanged lines to both sides, filter out empty lines at the end
-        const lines = part.value
-          .split("\n")
-          .filter((line, i, arr) => i < arr.length - 1 || line !== "")
+        // Add unchanged lines to both sides
+        const lines = part.value.split("\n").filter((line) => line.length > 0)
         leftLines.push(...lines.map((line) => ({ value: line })))
         rightLines.push(...lines.map((line) => ({ value: line })))
       }
@@ -117,14 +126,14 @@ const CodeComparisonSection = ({
             </div>
             <div className="p-3 overflow-x-auto">
               <SyntaxHighlighter
-                language="typescript"
+                language="python"
                 style={dracula}
                 customStyle={{
-                  background: "transparent",
+                  maxWidth: "100%",
                   margin: 0,
-                  padding: 0,
-                  fontSize: "13px",
-                  width: "100%"
+                  padding: "1rem",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-all"
                 }}
                 wrapLines={true}
                 showLineNumbers={true}
@@ -136,8 +145,7 @@ const CodeComparisonSection = ({
                       backgroundColor: line?.removed
                         ? "rgba(139, 0, 0, 0.2)"
                         : "transparent"
-                    },
-                    className: "syntax-line"
+                    }
                   }
                 }}
               >
@@ -155,14 +163,14 @@ const CodeComparisonSection = ({
             </div>
             <div className="p-3 overflow-x-auto">
               <SyntaxHighlighter
-                language="typescript"
+                language="python"
                 style={dracula}
                 customStyle={{
-                  background: "transparent",
+                  maxWidth: "100%",
                   margin: 0,
-                  padding: 0,
-                  fontSize: "13px",
-                  width: "100%"
+                  padding: "1rem",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-all"
                 }}
                 wrapLines={true}
                 showLineNumbers={true}
@@ -174,8 +182,7 @@ const CodeComparisonSection = ({
                       backgroundColor: line?.added
                         ? "rgba(0, 139, 0, 0.2)"
                         : "transparent"
-                    },
-                    className: "syntax-line"
+                    }
                   }
                 }}
               >
@@ -277,7 +284,7 @@ const Debug: React.FC<DebugProps> = ({ isProcessing, setIsProcessing }) => {
       setThoughtsData(newSolution.thoughts || null)
       setTimeComplexityData(newSolution.time_complexity || null)
       setSpaceComplexityData(newSolution.space_complexity || null)
-      setIsProcessing(false) // Ensure processing is false since we have data
+      setIsProcessing(false)
     }
 
     // Set up event listeners
@@ -326,7 +333,7 @@ const Debug: React.FC<DebugProps> = ({ isProcessing, setIsProcessing }) => {
       resizeObserver.disconnect()
       cleanupFunctions.forEach((cleanup) => cleanup())
     }
-  }, [queryClient, isTooltipVisible, tooltipHeight])
+  }, [queryClient])
 
   const handleTooltipVisibilityChange = (visible: boolean, height: number) => {
     setIsTooltipVisible(visible)
