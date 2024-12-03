@@ -426,7 +426,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
                 {solutionData && (
                   <>
                     <ContentSection
-                      title="Thoughts"
+                      title="Thoughts (Read these aloud)"
                       content={
                         thoughtsData && (
                           <div className="space-y-3">
