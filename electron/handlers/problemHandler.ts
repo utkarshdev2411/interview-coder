@@ -1,9 +1,10 @@
 // Import necessary modules
 import axios from "axios"
-import dotenv from "dotenv"
-dotenv.config()
+import { store } from "../store"
+import { ElectronStore } from "electron-store"
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+// Near the top after store import
+console.log("Store path:", store.path)
 
 // Define interfaces for ProblemInfo and related structures
 
@@ -41,10 +42,22 @@ interface ProblemInfo {
   test_cases?: any // Adjust the type as needed
 }
 
+interface StoreSchema {
+  openaiApiKey: string
+  // add other store fields here
+}
+
 // Define the extractProblemInfo function
 export async function extractProblemInfo(
   imageDataList: string[]
 ): Promise<any> {
+  const storedApiKey = store.get("openaiApiKey")
+  if (!storedApiKey) {
+    throw new Error("OpenAI API key not set")
+  } else {
+    console.log("API key found", storedApiKey)
+  }
+
   // Prepare the image contents for the message
   const imageContents = imageDataList.map((imageData) => ({
     type: "image_url",
@@ -261,10 +274,9 @@ export async function extractProblemInfo(
   const payload = {
     model: "gpt-4o-mini",
     messages: messages,
-    max_tokens: 1000,
-    temperature: 0,
     functions: functions,
-    function_call: { name: "extract_problem_details" }
+    function_call: { name: "extract_problem_details" },
+    max_tokens: 4096
   }
 
   try {
@@ -275,7 +287,7 @@ export async function extractProblemInfo(
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_API_KEY}`
+          Authorization: `Bearer ${storedApiKey}`
         }
       }
     )
@@ -289,8 +301,8 @@ export async function extractProblemInfo(
     // Return the parsed function call arguments
     return JSON.parse(functionCallArguments)
   } catch (error) {
-    console.error("Error processing images:", error)
-    throw new Error(`Error processing images: ${error}`)
+    console.error("Error in extractProblemInfo:", error)
+    throw error
   }
 }
 
@@ -441,13 +453,21 @@ IMPORTANT FORMATTING NOTES:
 
   try {
     // Send the request to the completion endpoint
+    const storedApiKey = store.get("openaiApiKey") as string
+    if (!storedApiKey) {
+      throw new Error("OpenAI API key not set")
+    }
+
+    console.log("API key length:", storedApiKey ? storedApiKey.length : 0)
+    // Don't log the full key for security reasons
+
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       payload,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_API_KEY}`
+          Authorization: `Bearer ${storedApiKey}`
         }
       }
     )
@@ -460,7 +480,7 @@ IMPORTANT FORMATTING NOTES:
 
     // Return the parsed function call arguments
     return JSON.parse(functionCallArguments)
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating solutions:", error)
     throw new Error(`Error generating solutions: ${error.message}`)
   }
@@ -643,7 +663,7 @@ IMPORTANT FORMATTING NOTES:
 
   // Prepare the payload for the API call
   const payload = {
-    model: "gpt-4o-mini", // Use the appropriate model
+    model: "gpt-4o-mini",
     messages: messages,
     max_tokens: 4000,
     temperature: 0,
@@ -653,13 +673,21 @@ IMPORTANT FORMATTING NOTES:
 
   try {
     // Send the request to the OpenAI API
+    const storedApiKey = store.get("openaiApiKey") as string
+    if (!storedApiKey) {
+      throw new Error("OpenAI API key not set")
+    }
+
+    console.log("API key length:", storedApiKey ? storedApiKey.length : 0)
+    // Don't log the full key for security reasons
+
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       payload,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+          Authorization: `Bearer ${storedApiKey}`
         }
       }
     )
@@ -673,7 +701,23 @@ IMPORTANT FORMATTING NOTES:
     // Parse and return the response
     return JSON.parse(functionCallArguments) as DebugSolutionResponse
   } catch (error: any) {
-    console.error("Error generating debug solutions:", error)
-    throw new Error(`Error generating debug solutions: ${error.message}`)
+    console.error("Full error object:", error)
+    console.error("Error response data:", error.response?.data)
+    console.error("Error status:", error.response?.status)
+    console.error("Error headers:", error.response?.headers)
+
+    if (error.response?.status === 404) {
+      throw new Error(
+        "API endpoint not found. Please check the model name and URL."
+      )
+    } else if (error.response?.status === 401) {
+      throw new Error("Authentication failed. Please check your API key.")
+    } else {
+      throw new Error(
+        `OpenAI API error: ${
+          error.response?.data?.error?.message || error.message
+        }`
+      )
+    }
   }
 }

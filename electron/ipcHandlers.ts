@@ -2,6 +2,7 @@
 
 import { ipcMain } from "electron"
 import { AppState } from "./main"
+import { store } from "./store"
 
 export function initializeIpcHandlers(appState: AppState): void {
   ipcMain.handle(
@@ -67,6 +68,16 @@ export function initializeIpcHandlers(appState: AppState): void {
     } catch (error: any) {
       console.error("Error resetting queues:", error)
       return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle("set-api-key", (_event, apiKey: string) => {
+    try {
+      store.set("openaiApiKey", apiKey)
+      return { success: true }
+    } catch (error) {
+      console.error("Error setting API key:", error)
+      return { success: false, error: "Failed to set API key" }
     }
   })
 }

@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron"
+const { shell } = require("electron")
 
 // Types for the exposed Electron API
 interface ElectronAPI {
@@ -32,6 +33,9 @@ interface ElectronAPI {
   takeScreenshot: () => Promise<void>
   moveWindowLeft: () => Promise<void>
   moveWindowRight: () => Promise<void>
+  updateApiKey: (apiKey: string) => Promise<void>
+  setApiKey: (apiKey: string) => Promise<{ success: boolean }>
+  openExternal: (url: string) => void
 }
 
 export const PROCESSING_EVENTS = {
@@ -161,5 +165,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }
   },
   moveWindowLeft: () => ipcRenderer.invoke("move-window-left"),
-  moveWindowRight: () => ipcRenderer.invoke("move-window-right")
+  moveWindowRight: () => ipcRenderer.invoke("move-window-right"),
+  updateApiKey: (apiKey: string) =>
+    ipcRenderer.invoke("update-api-key", apiKey),
+  setApiKey: (apiKey: string) => ipcRenderer.invoke("set-api-key", apiKey),
+  openExternal: (url: string) => shell.openExternal(url)
 } as ElectronAPI)
