@@ -5,11 +5,11 @@
   "scripts": {
     "clean": "rimraf dist dist-electron",
     "dev": "cross-env NODE_ENV=development vite",
-    "build": "cross-env NODE_ENV=production npm run clean && tsc && vite build",
+    "build": "npm run clean && tsc && vite build && electron-builder",
     "preview": "vite preview",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "app:dev": "concurrently \"cross-env NODE_ENV=development vite\" \"wait-on http://localhost:5173 && cross-env electron .\"",
-    "app:build": "cross-env NODE_ENV=production npm run build && electron-builder",
+    "app:build": "npm run build",
     "watch": "tsc -p electron/tsconfig.json --watch"
   },
   "build": {
@@ -18,16 +18,23 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
-      "package.json"
+      "package.json",
+      "electron/**/*"
     ],
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "assets"
     },
     "mac": {
       "category": "public.app-category.utilities",
       "target": [
-        "dmg",
-        "zip"
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "icon": "assets/icons/mac/icon.icns"
     },
