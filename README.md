@@ -29,11 +29,11 @@ Note: The application is **NOT** invisible to:
 
 The application uses unidentifiable global keyboard shortcuts that won't be detected by browsers or other applications:
 
-- Toggle Window Visibility: [Your Shortcut]
-- Move Window: [Your Shortcut]
-- Take Screenshot: [Your Shortcut]
-- Process Screenshots: [Your Shortcut]
-- Reset View: Command + R
+- Toggle Window Visibility: [Control or Cmd  + b]
+- Move Window: [Control or Cmd + arrows]
+- Take Screenshot: [Control or Cmd + H]
+- Process Screenshots: [Control or Cmd + Enter]
+- Reset View: [Control or Cmd + R]
 
 ## Usage
 
