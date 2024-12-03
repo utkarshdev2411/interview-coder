@@ -126,7 +126,7 @@ async def extract_problem_info(image_data_list: List[str]):
     ]
 
     response = completion(
-        model="gpt-4o-mini",
+        model="gpt-4o-2024-08-06",
         messages=messages,
         max_tokens=1000,
         temperature=0,

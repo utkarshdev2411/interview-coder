@@ -21,14 +21,6 @@ type DiffLine = {
   removed?: boolean
 }
 
-const syntaxHighlighterStyles = {
-  ".syntax-line": {
-    whiteSpace: "pre-wrap",
-    wordBreak: "break-word",
-    overflowWrap: "break-word"
-  }
-} as const
-
 const CodeComparisonSection = ({
   oldCode,
   newCode,
@@ -46,7 +38,9 @@ const CodeComparisonSection = ({
       return code
         .replace(/\r\n/g, "\n") // Convert Windows line endings to Unix
         .replace(/\r/g, "\n") // Convert remaining carriage returns
-        .trim() // Remove leading/trailing whitespace
+        .split("\n") // Split into lines
+        .map((line) => line.trimRight()) // Remove trailing whitespace from each line
+        .join("\n") // Rejoin with Unix line endings
     }
 
     const normalizedOldCode = normalizeCode(oldCode)
@@ -55,7 +49,7 @@ const CodeComparisonSection = ({
     // Generate the diff
     const diff = diffLines(normalizedOldCode, normalizedNewCode, {
       newlineIsToken: true,
-      ignoreWhitespace: true // Changed to true to better handle whitespace differences
+      ignoreWhitespace: false // Changed to false to preserve intended whitespace
     })
 
     // Process the diff to create parallel arrays
@@ -65,33 +59,32 @@ const CodeComparisonSection = ({
     diff.forEach((part) => {
       if (part.added) {
         // Add empty lines to left side
-        leftLines.push(...Array(part.count || 0).fill({ value: "" }))
-        // Add new lines to right side, filter out empty lines at the end
+        const lines = part.value.split("\n")
+        if (lines[lines.length - 1] === "") lines.pop() // Remove trailing empty line
+        leftLines.push(...Array(lines.length).fill({ value: "" }))
+        // Add new lines to right side
         rightLines.push(
-          ...part.value
-            .split("\n")
-            .filter((line) => line.length > 0)
-            .map((line) => ({
-              value: line,
-              added: true
-            }))
+          ...lines.map((line) => ({
+            value: line,
+            added: true
+          }))
         )
       } else if (part.removed) {
-        // Add removed lines to left side, filter out empty lines at the end
+        // Add removed lines to left side
+        const lines = part.value.split("\n")
+        if (lines[lines.length - 1] === "") lines.pop() // Remove trailing empty line
         leftLines.push(
-          ...part.value
-            .split("\n")
-            .filter((line) => line.length > 0)
-            .map((line) => ({
-              value: line,
-              removed: true
-            }))
+          ...lines.map((line) => ({
+            value: line,
+            removed: true
+          }))
         )
         // Add empty lines to right side
-        rightLines.push(...Array(part.count || 0).fill({ value: "" }))
+        rightLines.push(...Array(lines.length).fill({ value: "" }))
       } else {
         // Add unchanged lines to both sides
-        const lines = part.value.split("\n").filter((line) => line.length > 0)
+        const lines = part.value.split("\n")
+        if (lines[lines.length - 1] === "") lines.pop() // Remove trailing empty line
         leftLines.push(...lines.map((line) => ({ value: line })))
         rightLines.push(...lines.map((line) => ({ value: line })))
       }
@@ -277,6 +270,7 @@ const Debug: React.FC<DebugProps> = ({ isProcessing, setIsProcessing }) => {
       space_complexity: string
     } | null
 
+    console.log({ newSolution })
     // If we have cached data, set all state variables to the cached data
     if (newSolution) {
       setOldCode(newSolution.old_code || null)

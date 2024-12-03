@@ -96,7 +96,7 @@ export const ComplexitySection = ({
 }) => (
   <div className="space-y-2">
     <h2 className="text-[13px] font-medium text-white tracking-wide">
-      Complexity (Updated)
+      Complexity
     </h2>
     {isLoading ? (
       <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
@@ -268,18 +268,18 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
       }),
       //when the initial solution is generated, we'll set the solution data to that
       window.electronAPI.onSolutionSuccess((data) => {
-        if (!data?.solution) {
+        if (!data) {
           console.warn("Received empty or invalid solution data")
           return
         }
 
-        console.log({ solution: data.solution })
+        console.log({ solution: data })
 
         const solutionData = {
-          code: data.solution.code,
-          thoughts: data.solution.thoughts,
-          time_complexity: data.solution.time_complexity,
-          space_complexity: data.solution.space_complexity
+          code: data.code,
+          thoughts: data.thoughts,
+          time_complexity: data.time_complexity,
+          space_complexity: data.space_complexity
         }
 
         queryClient.setQueryData(["solution"], solutionData)
@@ -300,7 +300,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
       window.electronAPI.onDebugSuccess((data) => {
         console.log({ debug_data: data })
 
-        queryClient.setQueryData(["new_solution"], data.solution)
+        queryClient.setQueryData(["new_solution"], data)
         setDebugProcessing(false)
       }),
       //when there was an error in the initial debugging, we'll show a toast and stop the little generating pulsing thing.
