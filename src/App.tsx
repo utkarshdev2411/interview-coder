@@ -44,6 +44,8 @@ declare global {
       setApiKey: (
         apiKey: string
       ) => Promise<{ success: boolean; error?: string }>
+
+      openExternal: (url: string) => Promise<void>
     }
   }
 }

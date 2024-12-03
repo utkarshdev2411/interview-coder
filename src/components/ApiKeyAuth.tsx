@@ -23,6 +23,10 @@ const ApiKeyAuth: React.FC<ApiKeyAuthProps> = ({ onApiKeySubmit }) => {
     }
   }
 
+  const handleOpenLink = (url: string) => {
+    window.electronAPI.openExternal(url)
+  }
+
   return (
     <div className="h-fit flex flex-col items-center justify-center bg-gray-50 rounded-xl w-fit">
       <Card className="w-[400px]">
@@ -55,7 +59,24 @@ const ApiKeyAuth: React.FC<ApiKeyAuthProps> = ({ onApiKeySubmit }) => {
               Continue
             </Button>
             <p className="text-gray-400 text-xs text-center pt-2">
-              built by roy & neel
+              built out of frustration by{" "}
+              <button
+                onClick={() =>
+                  handleOpenLink("https://www.linkedin.com/in/roy-lee-cs123")
+                }
+                className="text-gray-400 hover:text-gray-600 underline"
+              >
+                Roy
+              </button>{" "}
+              n'{" "}
+              <button
+                onClick={() =>
+                  handleOpenLink("https://www.linkedin.com/in/neel-shanmugam/")
+                }
+                className="text-gray-400 hover:text-gray-600 underline"
+              >
+                Neel
+              </button>
             </p>
           </form>
         </CardContent>
