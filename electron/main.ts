@@ -4,6 +4,8 @@ import { WindowHelper } from "./WindowHelper"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
 import { ProcessingHelper } from "./ProcessingHelper"
+import { setApiKey } from "./handlers/problemHandler"
+import { store } from "./store"
 
 export class AppState {
   private static instance: AppState | null = null

@@ -4,7 +4,7 @@ import { ToastViewport } from "@radix-ui/react-toast"
 import { useEffect, useRef, useState } from "react"
 import Solutions from "./_pages/Solutions"
 import { QueryClient, QueryClientProvider } from "react-query"
-import Debug from "./_pages/Debug"
+import ApiKeyAuth from "./components/ApiKeyAuth"
 
 declare global {
   interface Window {
@@ -17,7 +17,6 @@ declare global {
       getScreenshots: () => Promise<Array<{ path: string; preview: string }>>
 
       //GLOBAL EVENTS
-      //TODO: CHECK THAT PROCESSING NO SCREENSHOTS AND TAKE SCREENSHOTS ARE BOTH CONDITIONAL
       onUnauthorized: (callback: () => void) => () => void
       onScreenshotTaken: (
         callback: (data: { path: string; preview: string }) => void
@@ -39,6 +38,12 @@ declare global {
 
       onDebugStart: (callback: () => void) => () => void
       onDebugError: (callback: (error: string) => void) => () => void
+
+      // Add the updateApiKey method
+      updateApiKey: (apiKey: string) => Promise<void>
+      setApiKey: (
+        apiKey: string
+      ) => Promise<{ success: boolean; error?: string }>
     }
   }
 }
@@ -54,7 +59,15 @@ const queryClient = new QueryClient({
 
 const App: React.FC = () => {
   const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleApiKeySubmit = async (key: string) => {
+    const result = await window.electronAPI.setApiKey(key)
+    if (result.success) {
+      setIsAuthenticated(true)
+    }
+  }
 
   // Effect for height monitoring
 
@@ -144,6 +157,10 @@ const App: React.FC = () => {
     ]
     return () => cleanupFunctions.forEach((cleanup) => cleanup())
   }, [])
+
+  if (!isAuthenticated) {
+    return <ApiKeyAuth onApiKeySubmit={handleApiKeySubmit} />
+  }
 
   return (
     <div ref={containerRef} className="min-h-0">

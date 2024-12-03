@@ -1,9 +1,6 @@
 // Import necessary modules
 import axios from "axios"
-import dotenv from "dotenv"
-dotenv.config()
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+import { store } from "../store"
 
 // Define interfaces for ProblemInfo and related structures
 
@@ -45,6 +42,11 @@ interface ProblemInfo {
 export async function extractProblemInfo(
   imageDataList: string[]
 ): Promise<any> {
+  const storedApiKey = store.get("openaiApiKey")
+  if (!storedApiKey) {
+    throw new Error("OpenAI API key not set")
+  }
+
   // Prepare the image contents for the message
   const imageContents = imageDataList.map((imageData) => ({
     type: "image_url",
@@ -259,12 +261,11 @@ export async function extractProblemInfo(
 
   // Prepare the request payload
   const payload = {
-    model: "gpt-4o-mini",
+    model: "gpt-4-vision-preview",
     messages: messages,
-    max_tokens: 1000,
-    temperature: 0,
     functions: functions,
-    function_call: { name: "extract_problem_details" }
+    function_call: { name: "extract_problem_details" },
+    max_tokens: 4096
   }
 
   try {
@@ -275,7 +276,7 @@ export async function extractProblemInfo(
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_API_KEY}`
+          Authorization: `Bearer ${storedApiKey}`
         }
       }
     )
@@ -289,8 +290,8 @@ export async function extractProblemInfo(
     // Return the parsed function call arguments
     return JSON.parse(functionCallArguments)
   } catch (error) {
-    console.error("Error processing images:", error)
-    throw new Error(`Error processing images: ${error}`)
+    console.error("Error in extractProblemInfo:", error)
+    throw error
   }
 }
 
@@ -447,7 +448,7 @@ IMPORTANT FORMATTING NOTES:
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_API_KEY}`
+          Authorization: `Bearer ${apiKey}`
         }
       }
     )
@@ -659,7 +660,7 @@ IMPORTANT FORMATTING NOTES:
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+          Authorization: `Bearer ${apiKey}`
         }
       }
     )
