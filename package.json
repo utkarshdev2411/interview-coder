@@ -4,12 +4,12 @@
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "rimraf dist dist-electron",
-    "dev": "vite",
-    "build": "npm run clean && tsc && vite build",
+    "dev": "cross-env NODE_ENV=development vite",
+    "build": "cross-env NODE_ENV=production npm run clean && tsc && vite build",
     "preview": "vite preview",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
-    "app:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env electron .\"",
-    "app:build": "npm run build && electron-builder",
+    "app:dev": "concurrently \"cross-env NODE_ENV=development vite\" \"wait-on http://localhost:5173 && cross-env electron .\"",
+    "app:build": "cross-env NODE_ENV=production npm run build && electron-builder",
     "watch": "tsc -p electron/tsconfig.json --watch"
   },
   "build": {

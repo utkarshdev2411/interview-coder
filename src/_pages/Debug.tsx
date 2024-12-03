@@ -12,7 +12,7 @@ import {
   ToastTitle,
   ToastVariant
 } from "../components/ui/toast"
-import ExtraScreenshotsQueueHelper from "../components/Solutions/ExtraScreenshotsQueueHelper"
+import SolutionCommands from "../components/Solutions/SolutionCommands"
 import { diffLines } from "diff"
 
 type DiffLine = {
@@ -366,7 +366,7 @@ const Debug: React.FC<DebugProps> = ({ isProcessing, setIsProcessing }) => {
       </div>
 
       {/* Navbar of commands with the tooltip */}
-      <ExtraScreenshotsQueueHelper
+      <SolutionCommands
         extraScreenshots={extraScreenshots}
         onTooltipVisibilityChange={handleTooltipVisibilityChange}
       />

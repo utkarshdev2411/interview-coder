@@ -8,7 +8,7 @@ import {
   ToastVariant,
   ToastMessage
 } from "../components/ui/toast"
-import QueueHelper from "../components/Queue/QueueHelper"
+import QueueCommands from "../components/Queue/QueueCommands"
 
 interface QueueProps {
   setView: React.Dispatch<React.SetStateAction<"queue" | "solutions" | "debug">>
@@ -197,7 +197,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
               )}
               <div className="mx-2 h-4 bg-white/20" />
 
-              <QueueHelper
+              <QueueCommands
                 onTooltipVisibilityChange={handleTooltipVisibilityChange}
               />
             </div>

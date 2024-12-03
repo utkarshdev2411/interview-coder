@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react"
 
-interface ExtraScreenshotsQueueHelperProps {
+interface ExtraScreenshotsQueueCommandsProps {
   extraScreenshots: any[]
   onTooltipVisibilityChange?: (visible: boolean, height: number) => void
 }
 
-const ExtraScreenshotsQueueHelper: React.FC<
-  ExtraScreenshotsQueueHelperProps
+const ExtraScreenshotsQueueCommands: React.FC<
+  ExtraScreenshotsQueueCommandsProps
 > = ({ extraScreenshots, onTooltipVisibilityChange }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -221,4 +221,4 @@ const ExtraScreenshotsQueueHelper: React.FC<
   )
 }
 
-export default ExtraScreenshotsQueueHelper
+export default ExtraScreenshotsQueueCommands

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react"
 
-interface QueueHelperProps {
+interface QueueCommandsProps {
   onTooltipVisibilityChange: (visible: boolean, height: number) => void
 }
 
-const QueueHelper: React.FC<QueueHelperProps> = ({
+const QueueCommands: React.FC<QueueCommandsProps> = ({
   onTooltipVisibilityChange
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
@@ -107,4 +107,4 @@ const QueueHelper: React.FC<QueueHelperProps> = ({
   )
 }
 
-export default QueueHelper
+export default QueueCommands
