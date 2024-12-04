@@ -5,7 +5,7 @@
   "scripts": {
     "clean": "rimraf dist dist-electron",
     "dev": "cross-env NODE_ENV=development vite",
-    "build": "npm run clean && tsc && vite build && electron-builder",
+    "build": "node scripts/build.js",
     "preview": "vite preview",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "app:dev": "concurrently \"cross-env NODE_ENV=development vite\" \"wait-on http://localhost:5173 && cross-env electron .\"",
@@ -36,7 +36,11 @@
           ]
         }
       ],
-      "icon": "assets/icons/mac/icon.icns"
+      "icon": "assets/icons/mac/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "win": {
       "target": [
@@ -81,6 +85,7 @@
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.0",
     "cross-env": "^7.0.3",
+    "dotenv": "^16.4.7",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
     "electron-is-dev": "^3.0.1",

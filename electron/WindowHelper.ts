@@ -186,8 +186,7 @@ export class WindowHelper {
       })
     }
 
-    this.mainWindow.showInactive()
-
+    this.mainWindow.show()
     this.isWindowVisible = true
   }
 

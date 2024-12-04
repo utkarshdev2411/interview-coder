@@ -79,6 +79,8 @@ export class ScreenshotHelper {
     showMainWindow: () => void
   ): Promise<string> {
     hideMainWindow()
+    // Add a small delay to ensure the window is fully hidden
+    await new Promise((resolve) => setTimeout(resolve, 100))
     let screenshotPath = ""
 
     if (this.view === "queue") {
