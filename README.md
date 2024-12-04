@@ -29,7 +29,7 @@ Note: The application is **NOT** invisible to:
 
 The application uses unidentifiable global keyboard shortcuts that won't be detected by browsers or other applications:
 
-- Toggle Window Visibility: [Control or Cmd  + b]
+- Toggle Window Visibility: [Control or Cmd + b]
 - Move Window: [Control or Cmd + arrows]
 - Take Screenshot: [Control or Cmd + H]
 - Process Screenshots: [Control or Cmd + Enter]
@@ -75,6 +75,15 @@ The application uses unidentifiable global keyboard shortcuts that won't be dete
 - Node.js (v16 or higher)
 - npm or bun package manager
 - OpenAI API key (for AI features)
+- Screen Recording Permission for Terminal/IDE
+  - On macOS:
+    1. Go to System Preferences > Security & Privacy > Privacy > Screen Recording
+    2. Ensure your Terminal app (or IDE) has screen recording permission enabled
+    3. Restart your Terminal/IDE after enabling permissions
+  - On Windows:
+    - No additional permissions needed
+  - On Linux:
+    - May require `xhost` access depending on your distribution
 
 ## Installation
 
