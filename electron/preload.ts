@@ -171,3 +171,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setApiKey: (apiKey: string) => ipcRenderer.invoke("set-api-key", apiKey),
   openExternal: (url: string) => shell.openExternal(url)
 } as ElectronAPI)
+
+// Add this focus restoration handler
+ipcRenderer.on("restore-focus", () => {
+  // Try to focus the active element if it exists
+  const activeElement = document.activeElement as HTMLElement
+  if (activeElement && typeof activeElement.focus === "function") {
+    activeElement.focus()
+  }
+})

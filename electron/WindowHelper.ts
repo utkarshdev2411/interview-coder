@@ -24,6 +24,9 @@ export class WindowHelper {
   private currentX: number = 0
   private currentY: number = 0
 
+  // Add this property to track focus
+  private wasFocused: boolean = false
+
   constructor(appState: AppState) {
     this.appState = appState
   }
@@ -93,7 +96,8 @@ export class WindowHelper {
       fullscreenable: false,
       hasShadow: false,
       backgroundColor: "#00000000",
-      focusable: true
+      focusable: true,
+      alwaysOnTop: true
     }
 
     this.mainWindow = new BrowserWindow(windowSettings)
@@ -105,7 +109,7 @@ export class WindowHelper {
       this.mainWindow.setVisibleOnAllWorkspaces(true, {
         visibleOnFullScreen: true
       })
-      this.mainWindow.setAlwaysOnTop(true, "screen-saver")
+      this.mainWindow.setAlwaysOnTop(true, "floating")
     }
 
     this.mainWindow.loadURL(startUrl).catch((err) => {
@@ -163,6 +167,9 @@ export class WindowHelper {
       return
     }
 
+    // Store focus state before hiding
+    this.wasFocused = this.mainWindow.isFocused()
+
     const bounds = this.mainWindow.getBounds()
     this.windowPosition = { x: bounds.x, y: bounds.y }
     this.windowSize = { width: bounds.width, height: bounds.height }
@@ -176,6 +183,8 @@ export class WindowHelper {
       return
     }
 
+    const focusedWindow = BrowserWindow.getFocusedWindow()
+
     if (this.windowPosition && this.windowSize) {
       this.mainWindow.setBounds({
         x: this.windowPosition.x,
@@ -185,7 +194,12 @@ export class WindowHelper {
       })
     }
 
-    this.mainWindow.show()
+    this.mainWindow.showInactive()
+
+    if (focusedWindow && !focusedWindow.isDestroyed()) {
+      focusedWindow.focus()
+    }
+
     this.isWindowVisible = true
   }
 

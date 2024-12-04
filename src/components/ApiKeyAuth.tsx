@@ -28,8 +28,8 @@ const ApiKeyAuth: React.FC<ApiKeyAuthProps> = ({ onApiKeySubmit }) => {
   }
 
   return (
-    <div className="h-fit flex flex-col items-center justify-center bg-gray-50 rounded-xl w-fit">
-      <Card className="w-[400px]">
+    <div className="w-fit h-fit flex flex-col items-center justify-center bg-gray-50 rounded-xl p-4">
+      <Card>
         <CardHeader className="space-y-2">
           <CardTitle className="text-2xl font-semibold text-center">
             Welcome to Interview Coder
@@ -47,13 +47,13 @@ const ApiKeyAuth: React.FC<ApiKeyAuthProps> = ({ onApiKeySubmit }) => {
                 placeholder="sk-..."
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                className="w-full h-10"
+                className="w-full"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full h-10 font-medium"
+              className="w-full font-medium"
               disabled={!apiKey.trim()}
             >
               Continue
