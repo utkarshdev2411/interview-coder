@@ -88,7 +88,6 @@ export class WindowHelper {
         preload: path.join(__dirname, "preload.js")
       },
       show: true,
-      alwaysOnTop: true,
       frame: false,
       transparent: true,
       fullscreenable: false,
@@ -106,7 +105,7 @@ export class WindowHelper {
       this.mainWindow.setVisibleOnAllWorkspaces(true, {
         visibleOnFullScreen: true
       })
-      this.mainWindow.setAlwaysOnTop(true, "floating")
+      this.mainWindow.setAlwaysOnTop(true, "screen-saver")
     }
 
     this.mainWindow.loadURL(startUrl).catch((err) => {

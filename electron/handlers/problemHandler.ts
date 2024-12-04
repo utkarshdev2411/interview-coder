@@ -1,10 +1,6 @@
 // Import necessary modules
 import axios from "axios"
 import { store } from "../store"
-import { ElectronStore } from "electron-store"
-
-// Near the top after store import
-console.log("Store path:", store.path)
 
 // Define interfaces for ProblemInfo and related structures
 
