@@ -4,7 +4,10 @@ import path from "node:path"
 import fs from "node:fs"
 import { app } from "electron"
 import { v4 as uuidv4 } from "uuid"
-import screenshot from "screenshot-desktop"
+import { execFile } from "child_process"
+import { promisify } from "util"
+
+const execFileAsync = promisify(execFile)
 
 export class ScreenshotHelper {
   private screenshotQueue: string[] = []
@@ -74,19 +77,53 @@ export class ScreenshotHelper {
     this.extraScreenshotQueue = []
   }
 
+  private async captureScreenshotMac(): Promise<Buffer> {
+    const tmpPath = path.join(app.getPath("temp"), `${uuidv4()}.png`)
+    await execFileAsync("screencapture", ["-x", tmpPath])
+    const buffer = await fs.promises.readFile(tmpPath)
+    await fs.promises.unlink(tmpPath)
+    return buffer
+  }
+
+  private async captureScreenshotWindows(): Promise<Buffer> {
+    // Using PowerShell's native screenshot capability
+    const tmpPath = path.join(app.getPath("temp"), `${uuidv4()}.png`)
+    const script = `
+      Add-Type -AssemblyName System.Windows.Forms
+      Add-Type -AssemblyName System.Drawing
+      $screen = [System.Windows.Forms.Screen]::PrimaryScreen
+      $bitmap = New-Object System.Drawing.Bitmap $screen.Bounds.Width, $screen.Bounds.Height
+      $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+      $graphics.CopyFromScreen($screen.Bounds.X, $screen.Bounds.Y, 0, 0, $bitmap.Size)
+      $bitmap.Save('${tmpPath.replace(/\\/g, "\\\\")}')
+      $graphics.Dispose()
+      $bitmap.Dispose()
+    `
+    await execFileAsync("powershell", ["-command", script])
+    const buffer = await fs.promises.readFile(tmpPath)
+    await fs.promises.unlink(tmpPath)
+    return buffer
+  }
+
   public async takeScreenshot(
     hideMainWindow: () => void,
     showMainWindow: () => void
   ): Promise<string> {
     hideMainWindow()
-    // Increase the delay to ensure the window is fully hidden
-    await new Promise((resolve) => setTimeout(resolve, 300))
-    let screenshotPath = ""
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
+    let screenshotPath = ""
     try {
+      // Get screenshot buffer using native methods
+      const screenshotBuffer =
+        process.platform === "darwin"
+          ? await this.captureScreenshotMac()
+          : await this.captureScreenshotWindows()
+
+      // Save and manage the screenshot
       if (this.view === "queue") {
         screenshotPath = path.join(this.screenshotDir, `${uuidv4()}.png`)
-        await screenshot({ filename: screenshotPath })
+        await fs.promises.writeFile(screenshotPath, screenshotBuffer)
 
         this.screenshotQueue.push(screenshotPath)
         if (this.screenshotQueue.length > this.MAX_SCREENSHOTS) {
@@ -101,7 +138,7 @@ export class ScreenshotHelper {
         }
       } else {
         screenshotPath = path.join(this.extraScreenshotDir, `${uuidv4()}.png`)
-        await screenshot({ filename: screenshotPath })
+        await fs.promises.writeFile(screenshotPath, screenshotBuffer)
 
         this.extraScreenshotQueue.push(screenshotPath)
         if (this.extraScreenshotQueue.length > this.MAX_SCREENSHOTS) {
@@ -115,7 +152,11 @@ export class ScreenshotHelper {
           }
         }
       }
+    } catch (error) {
+      console.error("Screenshot error:", error)
+      throw error
     } finally {
+      await new Promise((resolve) => setTimeout(resolve, 50))
       showMainWindow()
     }
 
