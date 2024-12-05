@@ -270,7 +270,6 @@ const Debug: React.FC<DebugProps> = ({ isProcessing, setIsProcessing }) => {
       space_complexity: string
     } | null
 
-    console.log({ newSolution })
     // If we have cached data, set all state variables to the cached data
     if (newSolution) {
       setOldCode(newSolution.old_code || null)

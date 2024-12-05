@@ -33,6 +33,7 @@ export class AppState {
     //global states
     UNAUTHORIZED: "procesing-unauthorized",
     NO_SCREENSHOTS: "processing-no-screenshots",
+    API_KEY_OUT_OF_CREDITS: "processing-api-key-out-of-credits",
 
     //states for generating the initial solution
     INITIAL_START: "initial-start",
@@ -119,12 +120,6 @@ export class AppState {
   }
 
   public toggleMainWindow(): void {
-    console.log(
-      "Screenshots: ",
-      this.screenshotHelper.getScreenshotQueue().length,
-      "Extra screenshots: ",
-      this.screenshotHelper.getExtraScreenshotQueue().length
-    )
     this.windowHelper.toggleMainWindow()
   }
 

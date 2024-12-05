@@ -42,6 +42,7 @@ export const PROCESSING_EVENTS = {
   //global states
   UNAUTHORIZED: "procesing-unauthorized",
   NO_SCREENSHOTS: "processing-no-screenshots",
+  API_KEY_OUT_OF_CREDITS: "processing-api-key-out-of-credits",
 
   //states for generating the initial solution
   INITIAL_START: "initial-start",
@@ -162,6 +163,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on(PROCESSING_EVENTS.UNAUTHORIZED, subscription)
     return () => {
       ipcRenderer.removeListener(PROCESSING_EVENTS.UNAUTHORIZED, subscription)
+    }
+  },
+  onApiKeyOutOfCredits: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on(PROCESSING_EVENTS.API_KEY_OUT_OF_CREDITS, subscription)
+    return () => {
+      ipcRenderer.removeListener(
+        PROCESSING_EVENTS.API_KEY_OUT_OF_CREDITS,
+        subscription
+      )
     }
   },
   moveWindowLeft: () => ipcRenderer.invoke("move-window-left"),

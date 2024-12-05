@@ -15,6 +15,7 @@ import {
 import { ProblemStatementData } from "../types/solutions"
 import SolutionCommands from "../components/Solutions/SolutionCommands"
 import Debug from "./Debug"
+import { useToast } from "../App"
 
 export const ContentSection = ({
   title,
@@ -140,13 +141,6 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
     null
   )
 
-  const [toastOpen, setToastOpen] = useState(false)
-  const [toastMessage, setToastMessage] = useState<ToastMessage>({
-    title: "",
-    description: "",
-    variant: "neutral"
-  })
-
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const [tooltipHeight, setTooltipHeight] = useState(0)
 
@@ -167,32 +161,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
     cacheTime: Infinity
   })
 
-  const showToast = (
-    title: string,
-    description: string,
-    variant: ToastVariant
-  ) => {
-    setToastMessage({ title, description, variant })
-    setToastOpen(true)
-  }
-
-  const handleDeleteExtraScreenshot = async (index: number) => {
-    const screenshotToDelete = extraScreenshots[index]
-
-    try {
-      const response = await window.electronAPI.deleteScreenshot(
-        screenshotToDelete.path
-      )
-
-      if (response.success) {
-        refetch() // Refetch screenshots instead of managing state directly
-      } else {
-        console.error("Failed to delete extra screenshot:", response.error)
-      }
-    } catch (error) {
-      console.error("Error deleting extra screenshot:", error)
-    }
-  }
+  const { showToast } = useToast()
 
   useEffect(() => {
     // Height update logic
@@ -220,6 +189,13 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
     // Set up event listeners
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
+      window.electronAPI.onApiKeyOutOfCredits(() => {
+        showToast(
+          "API Key Out of Credits",
+          "Your OpenAI API key is out of credits. Please refill your credits and try again.",
+          "error"
+        )
+      }),
       window.electronAPI.onResetView(() => {
         // Set resetting state first
         setIsResetting(true)
@@ -273,8 +249,6 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
           return
         }
 
-        console.log({ solution: data })
-
         const solutionData = {
           code: data.code,
           thoughts: data.thoughts,
@@ -298,8 +272,6 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
       }),
       //the first time debugging works, we'll set the view to debug and populate the cache with the data
       window.electronAPI.onDebugSuccess((data) => {
-        console.log({ debug_data: data })
-
         queryClient.setQueryData(["new_solution"], data)
         setDebugProcessing(false)
       }),
@@ -361,6 +333,26 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
     setTooltipHeight(height)
   }
 
+  const handleDeleteExtraScreenshot = async (index: number) => {
+    const screenshotToDelete = extraScreenshots[index]
+
+    try {
+      const response = await window.electronAPI.deleteScreenshot(
+        screenshotToDelete.path
+      )
+
+      if (response.success) {
+        refetch() // Refetch screenshots instead of managing state directly
+      } else {
+        console.error("Failed to delete extra screenshot:", response.error)
+        showToast("Error", "Failed to delete the screenshot", "error")
+      }
+    } catch (error) {
+      console.error("Error deleting extra screenshot:", error)
+      showToast("Error", "Failed to delete the screenshot", "error")
+    }
+  }
+
   return (
     <>
       {!isResetting && queryClient.getQueryData(["new_solution"]) ? (
@@ -372,16 +364,6 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
         </>
       ) : (
         <div ref={contentRef} className="relative space-y-3 px-4 py-3">
-          <Toast
-            open={toastOpen}
-            onOpenChange={setToastOpen}
-            variant={toastMessage.variant}
-            duration={3000}
-          >
-            <ToastTitle>{toastMessage.title}</ToastTitle>
-            <ToastDescription>{toastMessage.description}</ToastDescription>
-          </Toast>
-
           {/* Conditionally render the screenshot queue if solutionData is available */}
           {solutionData && (
             <div className="bg-transparent w-fit">

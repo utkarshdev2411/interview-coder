@@ -1,26 +1,15 @@
 import React, { useState, useEffect, useRef } from "react"
 import { useQuery } from "react-query"
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
-import {
-  Toast,
-  ToastTitle,
-  ToastDescription,
-  ToastVariant,
-  ToastMessage
-} from "../components/ui/toast"
 import QueueCommands from "../components/Queue/QueueCommands"
+import { useToast } from "../App"
 
 interface QueueProps {
   setView: React.Dispatch<React.SetStateAction<"queue" | "solutions" | "debug">>
 }
 
 const Queue: React.FC<QueueProps> = ({ setView }) => {
-  const [toastOpen, setToastOpen] = useState(false)
-  const [toastMessage, setToastMessage] = useState<ToastMessage>({
-    title: "",
-    description: "",
-    variant: "neutral"
-  })
+  const { showToast } = useToast()
 
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const [tooltipHeight, setTooltipHeight] = useState(0)
@@ -43,15 +32,6 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
     refetchOnWindowFocus: true,
     refetchOnMount: true
   })
-
-  const showToast = (
-    title: string,
-    description: string,
-    variant: ToastVariant
-  ) => {
-    setToastMessage({ title, description, variant })
-    setToastOpen(true)
-  }
 
   const handleDeleteScreenshot = async (index: number) => {
     const screenshotToDelete = screenshots[index]
@@ -132,16 +112,6 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
   return (
     <div ref={contentRef} className={`bg-transparent w-1/2`}>
       <div className="px-4 py-3 ">
-        <Toast
-          open={toastOpen}
-          onOpenChange={setToastOpen}
-          variant={toastMessage.variant}
-          duration={3000}
-        >
-          <ToastTitle>{toastMessage.title}</ToastTitle>
-          <ToastDescription>{toastMessage.description}</ToastDescription>
-        </Toast>
-
         <div className="space-y-3 w-fit">
           <ScreenshotQueue
             isLoading={false}

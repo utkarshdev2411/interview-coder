@@ -1,10 +1,18 @@
-import { ToastProvider } from "./components/ui/toast"
+import {
+  ToastProvider,
+  Toast,
+  ToastTitle,
+  ToastDescription,
+  ToastMessage,
+  ToastVariant
+} from "./components/ui/toast"
 import Queue from "./_pages/Queue"
 import { ToastViewport } from "@radix-ui/react-toast"
 import { useEffect, useRef, useState } from "react"
 import Solutions from "./_pages/Solutions"
 import { QueryClient, QueryClientProvider } from "react-query"
 import ApiKeyAuth from "./components/ApiKeyAuth"
+import { createContext, useContext } from "react"
 
 declare global {
   interface Window {
@@ -18,6 +26,7 @@ declare global {
 
       //GLOBAL EVENTS
       onUnauthorized: (callback: () => void) => () => void
+      onApiKeyOutOfCredits: (callback: () => void) => () => void
       onScreenshotTaken: (
         callback: (data: { path: string; preview: string }) => void
       ) => () => void
@@ -59,10 +68,32 @@ const queryClient = new QueryClient({
   }
 })
 
+interface ToastContextType {
+  showToast: (title: string, description: string, variant: ToastVariant) => void
+}
+
+export const ToastContext = createContext<ToastContextType | undefined>(
+  undefined
+)
+
+export function useToast() {
+  const context = useContext(ToastContext)
+  if (!context) {
+    throw new Error("useToast must be used within a ToastProvider")
+  }
+  return context
+}
+
 const App: React.FC = () => {
   const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [toastOpen, setToastOpen] = useState(false)
+  const [toastMessage, setToastMessage] = useState<ToastMessage>({
+    title: "",
+    description: "",
+    variant: "neutral"
+  })
 
   const handleApiKeySubmit = async (key: string) => {
     const result = await window.electronAPI.setApiKey(key)
@@ -71,11 +102,19 @@ const App: React.FC = () => {
     }
   }
 
+  const showToast = (
+    title: string,
+    description: string,
+    variant: ToastVariant
+  ) => {
+    setToastMessage({ title, description, variant })
+    setToastOpen(true)
+  }
+
   // Effect for height monitoring
 
   useEffect(() => {
     const cleanup = window.electronAPI.onResetView(() => {
-      console.log("Received 'reset-view' message from main process.")
       queryClient.invalidateQueries(["screenshots"])
       queryClient.invalidateQueries(["problem_statement"])
       queryClient.invalidateQueries(["solution"])
@@ -129,7 +168,6 @@ const App: React.FC = () => {
     const cleanupFunctions = [
       window.electronAPI.onSolutionStart(() => {
         setView("solutions")
-        console.log("starting processing")
       }),
 
       window.electronAPI.onUnauthorized(() => {
@@ -137,21 +175,16 @@ const App: React.FC = () => {
         queryClient.removeQueries(["solution"])
         queryClient.removeQueries(["problem_statement"])
         setView("queue")
-        console.log("Unauthorized")
       }),
       // Update this reset handler
       window.electronAPI.onResetView(() => {
-        console.log("Received 'reset-view' message from main process")
-
         queryClient.removeQueries(["screenshots"])
         queryClient.removeQueries(["solution"])
         queryClient.removeQueries(["problem_statement"])
         setView("queue")
-        console.log("View reset to 'queue' via Command+R shortcut")
       }),
       window.electronAPI.onProblemExtracted((data: any) => {
         if (view === "queue") {
-          console.log("Problem extracted successfully")
           queryClient.invalidateQueries(["problem_statement"])
           queryClient.setQueryData(["problem_statement"], data)
         }
@@ -168,13 +201,24 @@ const App: React.FC = () => {
     <div ref={containerRef} className="min-h-0">
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          {view === "queue" ? (
-            <Queue setView={setView} />
-          ) : view === "solutions" ? (
-            <Solutions setView={setView} />
-          ) : (
-            <></>
-          )}
+          <ToastContext.Provider value={{ showToast }}>
+            {view === "queue" ? (
+              <Queue setView={setView} />
+            ) : view === "solutions" ? (
+              <Solutions setView={setView} />
+            ) : (
+              <></>
+            )}
+          </ToastContext.Provider>
+          <Toast
+            open={toastOpen}
+            onOpenChange={setToastOpen}
+            variant={toastMessage.variant}
+            duration={3000}
+          >
+            <ToastTitle>{toastMessage.title}</ToastTitle>
+            <ToastDescription>{toastMessage.description}</ToastDescription>
+          </Toast>
           <ToastViewport />
         </ToastProvider>
       </QueryClientProvider>

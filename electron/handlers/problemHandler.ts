@@ -50,8 +50,6 @@ export async function extractProblemInfo(
   const storedApiKey = store.get("openaiApiKey")
   if (!storedApiKey) {
     throw new Error("OpenAI API key not set")
-  } else {
-    console.log("API key found", storedApiKey)
   }
 
   // Prepare the image contents for the message
@@ -292,12 +290,15 @@ export async function extractProblemInfo(
     const functionCallArguments =
       response.data.choices[0].message.function_call.arguments
 
-    console.log("Extracted problem output:", functionCallArguments)
-
     // Return the parsed function call arguments
     return JSON.parse(functionCallArguments)
   } catch (error) {
-    console.error("Error in extractProblemInfo:", error)
+    if (error.response?.status === 401) {
+      throw new Error(
+        "API Key out of credits. Please refill your OpenAI API credits and try again."
+      )
+    }
+
     throw error
   }
 }
@@ -454,7 +455,6 @@ IMPORTANT FORMATTING NOTES:
       throw new Error("OpenAI API key not set")
     }
 
-    console.log("API key length:", storedApiKey ? storedApiKey.length : 0)
     // Don't log the full key for security reasons
 
     const response = await axios.post(
@@ -472,12 +472,15 @@ IMPORTANT FORMATTING NOTES:
     const functionCallArguments =
       response.data.choices[0].message.function_call.arguments
 
-    console.log("Generated solution:", functionCallArguments)
-
     // Return the parsed function call arguments
     return JSON.parse(functionCallArguments)
   } catch (error: any) {
-    console.error("Error generating solutions:", error)
+    if (error.response?.status === 401) {
+      throw new Error(
+        "API Key out of credits. Please refill your OpenAI API credits and try again."
+      )
+    }
+
     throw new Error(`Error generating solutions: ${error.message}`)
   }
 }
@@ -486,8 +489,6 @@ export async function debugSolutionResponses(
   imageDataList: string[],
   problemInfo: ProblemInfo
 ): Promise<DebugSolutionResponse> {
-  console.log("Problem info", problemInfo)
-
   // Process images for inclusion in prompt
   const imageContents = imageDataList.map((imageData) => ({
     type: "image_url",
@@ -674,9 +675,6 @@ IMPORTANT FORMATTING NOTES:
       throw new Error("OpenAI API key not set")
     }
 
-    console.log("API key length:", storedApiKey ? storedApiKey.length : 0)
-    // Don't log the full key for security reasons
-
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       payload,
@@ -692,22 +690,19 @@ IMPORTANT FORMATTING NOTES:
     const functionCallArguments =
       response.data.choices[0].message.function_call.arguments
 
-    console.log("Extracted solution output:", functionCallArguments)
-
     // Parse and return the response
     return JSON.parse(functionCallArguments) as DebugSolutionResponse
   } catch (error: any) {
-    console.error("Full error object:", error)
-    console.error("Error response data:", error.response?.data)
-    console.error("Error status:", error.response?.status)
-    console.error("Error headers:", error.response?.headers)
-
     if (error.response?.status === 404) {
       throw new Error(
         "API endpoint not found. Please check the model name and URL."
       )
     } else if (error.response?.status === 401) {
       throw new Error("Authentication failed. Please check your API key.")
+    } else if (error.response?.status === 401) {
+      throw new Error(
+        "API Key out of credits. Please refill your OpenAI API credits and try again."
+      )
     } else {
       throw new Error(
         `OpenAI API error: ${

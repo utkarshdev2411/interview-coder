@@ -13,10 +13,7 @@ import axios from "axios"
 
 dotenv.config()
 
-console.log({ NODE_ENV: process.env.NODE_ENV })
 const isDev = process.env.NODE_ENV === "development"
-
-console.log({ isDev })
 
 export class ProcessingHelper {
   private appState: AppState
@@ -61,30 +58,27 @@ export class ProcessingHelper {
           }))
         )
 
-        console.log("Regular screenshots")
-        screenshots.forEach((screenshot: any) => {
-          console.log(screenshot.path)
-        })
-
         const result = await this.processScreenshotsHelper(screenshots, signal)
 
-        if (result.success) {
-          console.log("Processing problem extractionsuccess:", result.data)
-        } else {
-          mainWindow.webContents.send(
-            this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
-            result.error
-          )
+        if (!result.success) {
+          if (result.error?.includes("API Key out of credits")) {
+            mainWindow.webContents.send(
+              this.appState.PROCESSING_EVENTS.API_KEY_OUT_OF_CREDITS
+            )
+          } else {
+            mainWindow.webContents.send(
+              this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
+              result.error
+            )
+          }
         }
       } catch (error: any) {
         if (axios.isCancel(error)) {
-          console.log("Processing request canceled")
           mainWindow.webContents.send(
             this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
             "Processing was canceled by the user."
           )
         } else {
-          console.error("Processing error:", error)
           mainWindow.webContents.send(
             this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
             error.message
@@ -98,7 +92,6 @@ export class ProcessingHelper {
       const extraScreenshotQueue =
         this.screenshotHelper.getExtraScreenshotQueue()
       if (extraScreenshotQueue.length === 0) {
-        console.log("No extra screenshots to process")
         mainWindow.webContents.send(
           this.appState.PROCESSING_EVENTS.NO_SCREENSHOTS
         )
@@ -141,13 +134,11 @@ export class ProcessingHelper {
         }
       } catch (error: any) {
         if (axios.isCancel(error)) {
-          console.log("Extra processing request canceled")
           mainWindow.webContents.send(
             this.appState.PROCESSING_EVENTS.DEBUG_ERROR,
             "Extra processing was canceled by the user."
           )
         } else {
-          console.error("Processing error:", error)
           mainWindow.webContents.send(
             this.appState.PROCESSING_EVENTS.DEBUG_ERROR,
             error.message
@@ -165,26 +156,33 @@ export class ProcessingHelper {
   ) {
     try {
       const imageDataList = screenshots.map((screenshot) => screenshot.data)
+      const mainWindow = this.appState.getMainWindow()
+      let problemInfo
 
       // First function call - extract problem info
-      const problemInfo = await extractProblemInfo(imageDataList)
+      try {
+        problemInfo = await extractProblemInfo(imageDataList)
 
-      // Store problem info in AppState
-      this.appState.setProblemInfo(problemInfo)
+        // Store problem info in AppState
+        this.appState.setProblemInfo(problemInfo)
 
-      // Send first success event
-      const mainWindow = this.appState.getMainWindow()
-      if (mainWindow) {
-        mainWindow.webContents.send(
-          this.appState.PROCESSING_EVENTS.PROBLEM_EXTRACTED,
-          problemInfo
-        )
+        // Send first success event
+        if (mainWindow) {
+          mainWindow.webContents.send(
+            this.appState.PROCESSING_EVENTS.PROBLEM_EXTRACTED,
+            problemInfo
+          )
+        }
+      } catch (error: any) {
+        if (error.message?.includes("API Key out of credits")) {
+          throw new Error(error.message)
+        }
+        throw error // Re-throw if not an API key error
       }
 
       // Second function call - generate solutions
       if (mainWindow) {
         const solutionsResult = await this.generateSolutionsHelper(signal)
-        console.log({ solutionsResult })
         if (solutionsResult.success) {
           mainWindow.webContents.send(
             this.appState.PROCESSING_EVENTS.SOLUTION_SUCCESS,
@@ -199,11 +197,9 @@ export class ProcessingHelper {
 
       return { success: true, data: problemInfo }
     } catch (error: any) {
-      console.error("Processing error:", error)
       return { success: false, error: error.message }
     }
   }
-
   private async generateSolutionsHelper(signal: AbortSignal) {
     try {
       const problemInfo = this.appState.getProblemInfo()
@@ -218,11 +214,20 @@ export class ProcessingHelper {
         throw new Error("No solutions received")
       }
 
-      console.log("Received solutions: ", solutions)
-
       return { success: true, data: solutions }
     } catch (error: any) {
-      console.error("Solutions generation error:", error)
+      const mainWindow = this.appState.getMainWindow()
+
+      // Check if error message indicates API key out of credits
+      if (error.message?.includes("API Key out of credits")) {
+        if (mainWindow) {
+          mainWindow.webContents.send(
+            this.appState.PROCESSING_EVENTS.API_KEY_OUT_OF_CREDITS
+          )
+        }
+        return { success: false, error: error.message }
+      }
+
       return { success: false, error: error.message }
     }
   }
@@ -248,10 +253,21 @@ export class ProcessingHelper {
       if (!debugSolutions) {
         throw new Error("No debug solutions received")
       }
-      console.log({ debug_data: debugSolutions })
+
       return { success: true, data: debugSolutions }
     } catch (error: any) {
-      console.error("Processing error:", error)
+      const mainWindow = this.appState.getMainWindow()
+
+      // Check if error message indicates API key out of credits
+      if (error.message?.includes("API Key out of credits")) {
+        if (mainWindow) {
+          mainWindow.webContents.send(
+            this.appState.PROCESSING_EVENTS.API_KEY_OUT_OF_CREDITS
+          )
+        }
+        return { success: false, error: error.message }
+      }
+
       return { success: false, error: error.message }
     }
   }
@@ -262,14 +278,14 @@ export class ProcessingHelper {
     if (this.currentProcessingAbortController) {
       this.currentProcessingAbortController.abort()
       this.currentProcessingAbortController = null
-      console.log("Canceled ongoing processing request.")
+
       wasCancelled = true
     }
 
     if (this.currentExtraProcessingAbortController) {
       this.currentExtraProcessingAbortController.abort()
       this.currentExtraProcessingAbortController = null
-      console.log("Canceled ongoing extra processing request.")
+
       wasCancelled = true
     }
 
