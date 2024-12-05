@@ -42,7 +42,7 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      external: ["sharp", "electron"],
+      external: ["sharp", "electron", "electron-is-dev"],
       input: {
         main: resolve(__dirname, "./index.html")
       }

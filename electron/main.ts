@@ -4,8 +4,7 @@ import { WindowHelper } from "./WindowHelper"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
 import { ProcessingHelper } from "./ProcessingHelper"
-import { setApiKey } from "./handlers/problemHandler"
-import { store } from "./store"
+import { autoUpdater } from "electron-updater"
 
 export class AppState {
   private static instance: AppState | null = null
@@ -200,6 +199,9 @@ async function initializeApp() {
     appState.createWindow()
     // Register global shortcuts using ShortcutsHelper
     appState.shortcutsHelper.registerGlobalShortcuts()
+
+    // Check for updates
+    autoUpdater.checkForUpdatesAndNotify()
   })
 
   app.on("activate", () => {
