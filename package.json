@@ -5,7 +5,7 @@
   "scripts": {
     "clean": "rimraf dist dist-electron",
     "dev": "cross-env NODE_ENV=development vite",
-    "build": "npm run clean && cross-env NODE_ENV=production tsc && vite build && electron-builder --mac",
+    "build": "node scripts/build.js",
     "preview": "vite preview",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "app:dev": "concurrently \"cross-env NODE_ENV=development vite\" \"wait-on http://localhost:5173 && cross-env electron .\"",
@@ -57,14 +57,16 @@
       {
         "provider": "github",
         "owner": "ibttf",
-        "repo": "interview-coder"
+        "repo": "interview-coder",
+        "private": false,
+        "releaseType": "release"
       }
     ]
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "An invisibledesktop application to help you pass your technical interviews.",
   "devDependencies": {
     "@types/color": "^4.2.0",
     "@types/diff": "^6.0.0",

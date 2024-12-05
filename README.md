@@ -1,6 +1,6 @@
 # Interview Coder
 
-An invisible desktop application that will let you cheat on technical interviews.
+An invisible desktop application that will help you pass your technical interviews.
 
 ## Invisibility Compatibility
 

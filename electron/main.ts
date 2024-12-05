@@ -5,6 +5,7 @@ import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
 import { ProcessingHelper } from "./ProcessingHelper"
 import { autoUpdater } from "electron-updater"
+import { initAutoUpdater } from "./autoUpdater"
 
 export class AppState {
   private static instance: AppState | null = null
@@ -200,8 +201,12 @@ async function initializeApp() {
     // Register global shortcuts using ShortcutsHelper
     appState.shortcutsHelper.registerGlobalShortcuts()
 
-    // Check for updates
-    autoUpdater.checkForUpdatesAndNotify()
+    // Initialize auto-updater in production
+    if (app.isPackaged) {
+      initAutoUpdater()
+    } else {
+      console.log("Running in development mode - auto-updater disabled")
+    }
   })
 
   app.on("activate", () => {

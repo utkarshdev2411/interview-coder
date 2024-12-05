@@ -3,7 +3,11 @@ const { execSync } = require("child_process")
 
 try {
   // Verify environment variables
-  const requiredEnvVars = ["APPLE_ID", "APPLE_APP_SPECIFIC_PASSWORD"]
+  const requiredEnvVars = [
+    "APPLE_ID",
+    "APPLE_APP_SPECIFIC_PASSWORD",
+    "APPLE_TEAM_ID"
+  ]
 
   const missing = requiredEnvVars.filter((key) => !process.env[key])
 
@@ -17,14 +21,18 @@ try {
     console.warn("Warning: Building for macOS on a non-macOS platform may fail")
   }
 
-  // Run the build command
+  // Run the build command with notarization settings
   execSync(
     "npm run clean && cross-env NODE_ENV=production tsc && vite build && electron-builder --mac",
     {
       stdio: "inherit",
       env: {
         ...process.env,
-        CSC_IDENTITY_AUTO_DISCOVERY: "true"
+        CSC_IDENTITY_AUTO_DISCOVERY: "true",
+        APPLE_ID: process.env.APPLE_ID,
+        APPLE_APP_SPECIFIC_PASSWORD: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+        APPLE_TEAM_ID: process.env.APPLE_TEAM_ID,
+        NOTARIZE: "true"
       }
     }
   )
