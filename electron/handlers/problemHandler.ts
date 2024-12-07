@@ -378,22 +378,6 @@ ${constraintsStr}
 Example Test Cases:
 ${testCasesStr}
 
-Please provide a solution in the following strict JSON format:
-{
-    "thoughts": [
-        "Share up to 3 key thoughts as you work through solving this problem for the first time. Write in the voice of someone actively reasoning through their approach, using natural pauses, uncertainty, and casual language that shows real-time problem solving. IMPORTANT it should be max 100 characters per thought.",
-        "The first thought should capture that initial moment of recognition - maybe connecting it to something familiar or identifying the core challenge. Include those verbal cues like 'hmm' or 'this reminds me of' that show active thinking.",
-        "The second thought should explore your emerging strategy, showing how you're considering different approaches. Express both your algorithm knowledge and uncertainty - like 'I could probably use a heap here, but I'm worried about...' IMPORTANT: It is of utmost importance to mention the algorithm or data structure name in the second thought.",
-        "The third thought should be about solidifying your general approach, without getting too detailed yet. Show satisfaction at having a direction while acknowledging you still need to work out specifics - like 'Okay, I think I see how this could work...'"
-    ],
-    "code": "def solution(args):
-    # Your solution here
-    # Each line should be on its own line with proper indentation
-    result = []
-    return result",
-    "time_complexity": "O(Complexity): Brief explanation of why this is the case",
-    "space_complexity": "O(Complexity): Brief explanation of why this is the case"
-}
 
 IMPORTANT FORMATTING NOTES:
 1. In the code field, use actual line breaks (press enter for new lines)
@@ -403,7 +387,7 @@ IMPORTANT FORMATTING NOTES:
 
   // Prepare the request payload
   const payload = {
-    model: "gpt-4o-mini",
+    model: "o1-mini",
     messages: [
       {
         role: "user",
@@ -571,21 +555,6 @@ ${exampleTestCases}
 First extract and analyze the code shown in the image. Then create an improved version while maintaining the same general approach and structure.
 Focus on keeping the solution syntactically similar but with optimizations and INLINE comments ONLY ON lines of code that were changed.
 
-The response should be in the following strict JSON format:
-{
-    "thoughts": [
-        "List up to 3 specific changes made to improve the code, including your thoughts and reasoning. Write in the voice of someone actively reasoning through their approach, using natural pauses, uncertainty, and casual language that shows real-time problem solving. Instead of a robotic summary, showcase the thought process that led to a better solution. IMPORTANT: MAX 100 CHARACTERS PER THOUGHT."
-    ],
-    "old_code": "def solution(args):
-    # Exact code from image
-    pass",
-    "new_code": "def solution(args):
-    # Improved version with inline comments on changed lines
-    pass",
-    "time_complexity": "O(Complexity): Brief explanation including any minor optimizations",
-    "space_complexity": "O(Complexity): Brief explanation including any minor optimizations"
-}
-
 IMPORTANT FORMATTING NOTES:
 1. Use actual line breaks (press enter for new lines) in both old_code and new_code
 2. Maintain proper indentation with spaces in both code blocks
@@ -629,7 +598,7 @@ IMPORTANT FORMATTING NOTES:
           },
           old_code: {
             type: "string",
-            description: "The exact code implementation found in the image"
+            description: "The exact code implementation found in the image, don't say same code, actually rewrite the code out"
           },
           new_code: {
             type: "string",
@@ -660,7 +629,7 @@ IMPORTANT FORMATTING NOTES:
 
   // Prepare the payload for the API call
   const payload = {
-    model: "o1-mini",
+    model: "gpt-4o-mini",
     messages: messages,
     max_tokens: 4000,
     temperature: 0,
