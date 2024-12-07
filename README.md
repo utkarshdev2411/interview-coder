@@ -90,8 +90,8 @@ The application uses unidentifiable global keyboard shortcuts that won't be dete
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/ibttf/interview-coder-frontend.git
-cd interview-coder-frontend
+git clone https://github.com/ibttf/interview-coder.git
+cd interview-coder
 ```
 
 2. Install dependencies:
