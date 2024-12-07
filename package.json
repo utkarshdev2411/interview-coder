@@ -13,7 +13,7 @@
     "watch": "tsc -p electron/tsconfig.json --watch"
   },
   "build": {
-    "appId": "com.electron.interview-coder",
+    "appId": "interview.coder.id",
     "productName": "Interview Coder",
     "files": [
       "dist/**/*",
@@ -26,12 +26,10 @@
       "buildResources": "assets"
     },
     "mac": {
-      "category": "public.app-category.utilities",
+      "category": "public.app-category.developer-tools",
       "target": [
-        {
-          "target": "dmg",
-          "arch": "universal"
-        }
+        "dmg",
+        "zip"
       ],
       "icon": "assets/icons/mac/icon.icns",
       "hardenedRuntime": true,
@@ -41,32 +39,26 @@
     },
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ],
       "icon": "assets/icons/win/icon.ico"
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        "AppImage"
       ],
       "icon": "assets/icons/png/icon-256x256.png"
     },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "ibttf",
-        "repo": "interview-coder",
-        "private": false,
-        "releaseType": "release"
-      }
-    ]
+    "publish": {
+      "provider": "github",
+      "owner": "ibttf",
+      "repo": "interview-coder"
+    }
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "An invisibledesktop application to help you pass your technical interviews.",
+  "description": "An invisible desktop application to help you pass your technical interviews.",
   "devDependencies": {
     "@types/color": "^4.2.0",
     "@types/diff": "^6.0.0",

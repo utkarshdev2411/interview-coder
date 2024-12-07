@@ -1,60 +1,50 @@
 import { autoUpdater } from "electron-updater"
-import { app, dialog } from "electron"
-import log from "electron-log"
+import { BrowserWindow, ipcMain } from "electron"
 
 export function initAutoUpdater() {
-  // Configure logging
-  log.transports.file.level = "info"
-  autoUpdater.logger = log
+  // Configure auto updater
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = true
 
-  // Check for updates immediately when app starts
+  // Check for updates immediately
   autoUpdater.checkForUpdates()
 
-  // Check for updates every 30 minutes
+  // Set up update checking interval (every 1 hour)
   setInterval(() => {
     autoUpdater.checkForUpdates()
-  }, 30 * 60 * 1000)
+  }, 60 * 60 * 1000)
 
-  // Listen for update available
+  // Event handlers
   autoUpdater.on("update-available", (info) => {
-    dialog
-      .showMessageBox({
-        type: "info",
-        title: "Update Available",
-        message: `A new version (${info.version}) is available. Would you like to update now?`,
-        buttons: ["Yes", "No"],
-        defaultId: 0,
-        cancelId: 1
-      })
-      .then(({ response }) => {
-        if (response === 0) {
-          autoUpdater.downloadUpdate()
-        }
-      })
+    // Notify renderer process about available update
+    BrowserWindow.getAllWindows().forEach((window) => {
+      window.webContents.send("update-available", info)
+    })
   })
 
-  // Listen for update downloaded
   autoUpdater.on("update-downloaded", (info) => {
-    dialog
-      .showMessageBox({
-        type: "info",
-        title: "Update Ready",
-        message: `Version ${info.version} has been downloaded. The application will now restart to install the update.`,
-        buttons: ["Okay"],
-        defaultId: 0
-      })
-      .then(() => {
-        autoUpdater.quitAndInstall(false, true)
-      })
+    // Notify renderer process that update is ready to install
+    BrowserWindow.getAllWindows().forEach((window) => {
+      window.webContents.send("update-downloaded", info)
+    })
   })
 
-  // Handle errors
   autoUpdater.on("error", (err) => {
-    log.error("AutoUpdater error:", err)
-    dialog.showErrorBox(
-      "Update Error",
-      "An error occurred while updating the application. " +
-        "Please try again later or download the latest version manually."
-    )
+    console.error("Auto updater error:", err)
+  })
+
+  // Handle IPC messages from renderer
+  ipcMain.handle("start-update", async () => {
+    try {
+      await autoUpdater.downloadUpdate()
+      return { success: true }
+    } catch (error) {
+      console.error("Failed to start update:", error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle("install-update", () => {
+    autoUpdater.quitAndInstall()
   })
 }
