@@ -2,6 +2,10 @@
 
 An invisible desktop application that will help you pass your technical interviews.
 
+
+https://github.com/user-attachments/assets/caf1e6cd-27d5-4033-b8c5-9df1cb52b21d
+
+
 ## Invisibility Compatibility
 
 The application is invisible to:
