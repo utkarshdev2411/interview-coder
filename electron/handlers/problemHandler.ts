@@ -486,7 +486,7 @@ Example Test Cases:
 ${exampleTestCases}
 
 First extract and analyze the code shown in the image. Then create an improved version while maintaining the same general approach and structure. The old code you save should ONLY be the exact code that you see on the screen, regardless of any optimizations or changes you make. Make all your changes in the new_code field. You should use the image that has the most recent, longest version of the code, making sure to combine multiple images if necessary.
-Focus on keeping the solution syntactically similar but with optimizations and INLINE comments ONLY ON lines of code that were changed.
+Focus on keeping the solution syntactically similar but with optimizations and INLINE comments ONLY ON lines of code that were changed. Make sure there are no extra line breaks and all the code that is unchanged is in the same line as it was in the original code.
 
 IMPORTANT FORMATTING NOTES:
 1. Use actual line breaks (press enter for new lines) in both old_code and new_code
