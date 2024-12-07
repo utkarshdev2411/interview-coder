@@ -64,7 +64,8 @@ const ApiKeyAuth: React.FC<ApiKeyAuthProps> = ({ onApiKeySubmit }) => {
           </CardTitle>
           <CardDescription className="text-center text-gray-500">
             Please enter your OpenAI API key to continue. Your key will not be
-            stored, so keep it in a safe place to copy it for next time.
+            stored, so keep it in a safe place to copy it for next time. Press
+            Cmd + B to hide/show the window.
           </CardDescription>
         </CardHeader>
         <CardContent>
