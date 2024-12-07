@@ -293,7 +293,7 @@ export async function extractProblemInfo(
     // Return the parsed function call arguments
     return JSON.parse(functionCallArguments)
   } catch (error) {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 429) {
       throw new Error(
         "API Key out of credits. Please refill your OpenAI API credits and try again."
       )
@@ -392,7 +392,7 @@ Format Requirements:
     const content = response.data.choices[0].message.content
     return JSON.parse(content)
   } catch (error: any) {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 429) {
       throw new Error(
         "API Key out of credits. Please refill your OpenAI API credits and try again."
       )
