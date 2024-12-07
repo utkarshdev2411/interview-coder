@@ -306,144 +306,81 @@ export async function extractProblemInfo(
 export async function generateSolutionResponses(
   problemInfo: ProblemInfo
 ): Promise<any> {
-  // Generate input parameters string with error handling
-  let inputParams = "Input parameters not available"
-  if (problemInfo.input_format?.parameters) {
-    inputParams = problemInfo.input_format.parameters
-      .map(
-        (p) => `- ${p.name}: ${p.type}${p.subtype ? ` of ${p.subtype}` : ""}`
-      )
-      .join("\n")
-  }
-
-  // Generate test cases string with error handling
-  let testCasesStr = "Test cases not available"
-  if (problemInfo.test_cases) {
-    try {
-      testCasesStr = JSON.stringify(problemInfo.test_cases, null, 2)
-    } catch {
-      testCasesStr = "Test cases not available"
-    }
-  }
-
-  // Generate constraints string with error handling
-  let constraintsStr = "Constraints not available"
-  if (problemInfo.constraints) {
-    constraintsStr = problemInfo.constraints
-      .map((c) => {
-        let constraintStr = `- ${c.description}`
-        if (c.range) {
-          constraintStr += ` (${c.parameter}: ${c.range.min} to ${c.range.max})`
-        }
-        return constraintStr
-      })
-      .join("\n")
-  }
-
-  // Generate output format string with error handling
-  let outputFormat = "Output format not available"
-  if (problemInfo.output_format) {
-    const outputType = problemInfo.output_format.type
-    const outputSubtype = problemInfo.output_format.subtype
-      ? ` of ${problemInfo.output_format.subtype}`
-      : ""
-    outputFormat = `Returns: ${outputType}${outputSubtype}`
-  }
-
-  // Build the prompt
-  const prompt = `
-Given the following coding problem:
-
-Problem Statement:
-${problemInfo.problem_statement ?? "Problem statement not available"}
-
-Input Format:
-${
-  problemInfo.input_format?.description ??
-  "Input format description not available"
-}
-Parameters:
-${inputParams}
-
-Output Format:
-${
-  problemInfo.output_format?.description ??
-  "Output format description not available"
-}
-${outputFormat}
-
-Constraints:
-${constraintsStr}
-
-Example Test Cases:
-${testCasesStr}
-
-
-IMPORTANT FORMATTING NOTES:
-1. In the code field, use actual line breaks (press enter for new lines)
-2. Each line of code should be properly indented with spaces
-3. Include clear comments explaining key parts of the solution
-4. The entire response must be valid JSON that can be parsed`
-
-  // Prepare the request payload
-  const payload = {
-    model: "o1-mini",
-    messages: [
-      {
-        role: "user",
-        content: prompt
-      }
-    ],
-    max_tokens: 4096,
-    temperature: 0,
-    functions: [
-      {
-        name: "provide_solution",
-        description: "Provide a solution for the coding problem",
-        parameters: {
-          type: "object",
-          properties: {
-            thoughts: {
-              type: "array",
-              description: "Three key insights about the solution approach",
-              items: {
-                type: "string"
-              },
-              minItems: 3,
-              maxItems: 3
-            },
-            code: {
-              type: "string",
-              description: "The Python solution with detailed comments"
-            },
-            time_complexity: {
-              type: "string",
-              description: "Time complexity explanation"
-            },
-            space_complexity: {
-              type: "string",
-              description: "Space complexity explanation"
-            }
-          },
-          required: ["thoughts", "code", "time_complexity", "space_complexity"]
-        }
-      }
-    ],
-    function_call: { name: "provide_solution" }
-  }
-
   try {
-    // Send the request to the completion endpoint
     const storedApiKey = store.get("openaiApiKey") as string
     if (!storedApiKey) {
       throw new Error("OpenAI API key not set")
     }
 
-    // Don't log the full key for security reasons
+    // Build the complete prompt with all problem information
+    const promptContent = `Given the following coding problem:
+
+Problem Statement:
+${problemInfo.problem_statement ?? "Problem statement not available"}
+
+Input Format:
+${problemInfo.input_format?.description ?? "Input format not available"}
+Parameters:
+${
+  problemInfo.input_format?.parameters
+    ?.map((p) => `- ${p.name}: ${p.type}${p.subtype ? ` of ${p.subtype}` : ""}`)
+    .join("\n") ?? "No parameters available"
+}
+
+Output Format:
+${problemInfo.output_format?.description ?? "Output format not available"}
+Returns: ${problemInfo.output_format?.type ?? "Type not specified"}${
+      problemInfo.output_format?.subtype
+        ? ` of ${problemInfo.output_format.subtype}`
+        : ""
+    }
+
+Constraints:
+${
+  problemInfo.constraints
+    ?.map((c) => {
+      let constraintStr = `- ${c.description}`
+      if (c.range) {
+        constraintStr += ` (${c.parameter}: ${c.range.min} to ${c.range.max})`
+      }
+      return constraintStr
+    })
+    .join("\n") ?? "No constraints specified"
+}
+
+Test Cases:
+${JSON.stringify(problemInfo.test_cases ?? "No test cases available", null, 2)}
+
+Generate a solution in this format:
+{
+  "thoughts": [
+    "First thought showing recognition of the problem and core challenge",
+    "Second thought naming specific algorithm/data structure being considered",
+    "Third thought showing confidence in approach while acknowledging details needed"
+  ],
+  "code": "The Python solution with comments explaining the code",
+  "time_complexity": "The time complexity in form O(_) because _",
+  "space_complexity": "The space complexity in form O(_) because _"
+}
+
+Format Requirements:
+1. Use actual line breaks in code field
+2. Indent code properly with spaces
+3. Include clear code comments
+4. Response must be valid JSON
+5. Return only the JSON object with no markdown or other formatting`
 
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
-      payload,
+      {
+        model: "o1-mini",
+        messages: [
+          {
+            role: "user",
+            content: promptContent
+          }
+        ]
+      },
       {
         headers: {
           "Content-Type": "application/json",
@@ -452,19 +389,15 @@ IMPORTANT FORMATTING NOTES:
       }
     )
 
-    // Extract the function call arguments from the response
-    const functionCallArguments =
-      response.data.choices[0].message.function_call.arguments
-
-    // Return the parsed function call arguments
-    return JSON.parse(functionCallArguments)
+    const content = response.data.choices[0].message.content
+    return JSON.parse(content)
   } catch (error: any) {
     if (error.response?.status === 401) {
       throw new Error(
         "API Key out of credits. Please refill your OpenAI API credits and try again."
       )
     }
-
+    console.error("Error details:", error)
     throw new Error(`Error generating solutions: ${error.message}`)
   }
 }
@@ -630,7 +563,7 @@ IMPORTANT FORMATTING NOTES:
 
   // Prepare the payload for the API call
   const payload = {
-    model: "gpt-4o-mini",
+    model: "gpt-4o",
     messages: messages,
     max_tokens: 4000,
     temperature: 0,

@@ -101,7 +101,7 @@ export class WindowHelper {
     }
 
     this.mainWindow = new BrowserWindow(windowSettings)
-    // this.mainWindow.webContents.openDevTools()
+    this.mainWindow.webContents.openDevTools()
     this.mainWindow.setContentProtection(true)
     this.mainWindow.setHiddenInMissionControl(true)
 

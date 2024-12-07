@@ -5,13 +5,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism"
 
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
-import {
-  Toast,
-  ToastDescription,
-  ToastMessage,
-  ToastTitle,
-  ToastVariant
-} from "../components/ui/toast"
+
 import { ProblemStatementData } from "../types/solutions"
 import SolutionCommands from "../components/Solutions/SolutionCommands"
 import Debug from "./Debug"
@@ -248,7 +242,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
           console.warn("Received empty or invalid solution data")
           return
         }
-
+        console.log({ data })
         const solutionData = {
           code: data.code,
           thoughts: data.thoughts,
