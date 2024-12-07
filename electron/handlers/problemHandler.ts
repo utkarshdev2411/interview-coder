@@ -378,6 +378,23 @@ ${constraintsStr}
 Example Test Cases:
 ${testCasesStr}
 
+Please provide a solution in the following strict JSON format:
+{
+    "thoughts": [
+        "Share up to 3 key thoughts as you work through solving this problem for the first time. Write in the voice of someone actively reasoning through their approach, using natural pauses, uncertainty, and casual language that shows real-time problem solving. IMPORTANT it should be max 100 characters per thought.",
+        "The first thought should capture that initial moment of recognition - maybe connecting it to something familiar or identifying the core challenge. Include those verbal cues like 'hmm' or 'this reminds me of' that show active thinking.",
+        "The second thought should explore your emerging strategy, showing how you're considering different approaches. Express both your algorithm knowledge and uncertainty - like 'I could probably use a heap here, but I'm worried about...' IMPORTANT: It is of utmost importance to mention the algorithm or data structure name in the second thought.",
+        "The third thought should be about solidifying your general approach, without getting too detailed yet. Show satisfaction at having a direction while acknowledging you still need to work out specifics - like 'Okay, I think I see how this could work...'"
+    ],
+    "code": "def solution(args):
+    # Your solution here
+    # Each line should be on its own line with proper indentation
+    result = []
+    return result",
+    "time_complexity": "O(Complexity): Brief explanation of why this is the case",
+    "space_complexity": "O(Complexity): Brief explanation of why this is the case"
+}
+
 IMPORTANT FORMATTING NOTES:
 1. In the code field, use actual line breaks (press enter for new lines)
 2. Each line of code should be properly indented with spaces
@@ -386,7 +403,7 @@ IMPORTANT FORMATTING NOTES:
 
   // Prepare the request payload
   const payload = {
-    model: "o1-mini",
+    model: "gpt-4o",
     messages: [
       {
         role: "user",
@@ -551,7 +568,7 @@ ${constraints}
 Example Test Cases:
 ${exampleTestCases}
 
-First extract and analyze the code shown in the image. Then create an improved version while maintaining the same general approach and structure.
+First extract and analyze the code shown in the image. Then create an improved version while maintaining the same general approach and structure. The old code you save should ONLY be the exact code that you see on the screen, regardless of any optimizations or changes you make. Make all your changes in the new_code field.
 Focus on keeping the solution syntactically similar but with optimizations and INLINE comments ONLY ON lines of code that were changed.
 
 IMPORTANT FORMATTING NOTES:
@@ -597,7 +614,8 @@ IMPORTANT FORMATTING NOTES:
           },
           old_code: {
             type: "string",
-            description: "The exact code implementation found in the image"
+            description:
+              "The exact code implementation found in the image. There should be no additional lines of code added, this should only contain the code that is visible from the images, regardless of correctness or any fixes you can make."
           },
           new_code: {
             type: "string",
