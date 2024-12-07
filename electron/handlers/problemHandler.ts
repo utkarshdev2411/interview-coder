@@ -552,7 +552,7 @@ ${constraints}
 Example Test Cases:
 ${exampleTestCases}
 
-First extract and analyze the code shown in the image. Then create an improved version while maintaining the same general approach and structure.
+First extract and analyze the code shown in the image. Then create an improved version while maintaining the same general approach and structure. The old code you save should ONLY be the exact code that you see on the screen, regardless of any optimizations or changes you make. Make all your changes in the new_code field.
 Focus on keeping the solution syntactically similar but with optimizations and INLINE comments ONLY ON lines of code that were changed.
 
 IMPORTANT FORMATTING NOTES:
@@ -598,7 +598,8 @@ IMPORTANT FORMATTING NOTES:
           },
           old_code: {
             type: "string",
-            description: "The exact code implementation found in the image, don't say same code, actually rewrite the code out"
+            description:
+              "The exact code implementation found in the image. There should be no additional lines of code added, this should only contain the code that is visible from the images, regardless of correctness or any fixes you can make."
           },
           new_code: {
             type: "string",
