@@ -18,6 +18,7 @@ The application is invisible to:
 Note: The application is **NOT** invisible to:
 
 - Zoom versions 6.1.6 and above
+     - https://zoom.en.uptodown.com/mac/versions (link to downgrade Zoom if needed)
 - Mac OS native screen recording (Command + Shift + 5)
 
 ## Features
