@@ -34,6 +34,7 @@ export class AppState {
     UNAUTHORIZED: "procesing-unauthorized",
     NO_SCREENSHOTS: "processing-no-screenshots",
     API_KEY_OUT_OF_CREDITS: "processing-api-key-out-of-credits",
+    API_KEY_INVALID: "processing-api-key-invalid",
 
     //states for generating the initial solution
     INITIAL_START: "initial-start",

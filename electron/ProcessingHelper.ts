@@ -65,6 +65,14 @@ export class ProcessingHelper {
             mainWindow.webContents.send(
               this.appState.PROCESSING_EVENTS.API_KEY_OUT_OF_CREDITS
             )
+          } else if (
+            result.error?.includes(
+              "Please close this window and re-enter a valid Open AI API key."
+            )
+          ) {
+            mainWindow.webContents.send(
+              this.appState.PROCESSING_EVENTS.API_KEY_INVALID
+            )
           } else {
             mainWindow.webContents.send(
               this.appState.PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
@@ -227,6 +235,18 @@ export class ProcessingHelper {
         }
         return { success: false, error: error.message }
       }
+      if (
+        error.message?.includes(
+          "Please close this window and re-enter a valid Open AI API key."
+        )
+      ) {
+        if (mainWindow) {
+          mainWindow.webContents.send(
+            this.appState.PROCESSING_EVENTS.API_KEY_INVALID
+          )
+        }
+        return { success: false, error: error.message }
+      }
 
       return { success: false, error: error.message }
     }
@@ -268,6 +288,18 @@ export class ProcessingHelper {
         return { success: false, error: error.message }
       }
 
+      if (
+        error.message?.includes(
+          "Please close this window and re-enter a valid Open AI API key."
+        )
+      ) {
+        if (mainWindow) {
+          mainWindow.webContents.send(
+            this.appState.PROCESSING_EVENTS.API_KEY_INVALID
+          )
+        }
+        return { success: false, error: error.message }
+      }
       return { success: false, error: error.message }
     }
   }

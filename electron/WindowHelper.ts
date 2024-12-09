@@ -103,9 +103,9 @@ export class WindowHelper {
     this.mainWindow = new BrowserWindow(windowSettings)
     // this.mainWindow.webContents.openDevTools()
     this.mainWindow.setContentProtection(true)
-    this.mainWindow.setHiddenInMissionControl(true)
 
     if (process.platform === "darwin") {
+      this.mainWindow.setHiddenInMissionControl(true) //this should hide the window from the dock on mac, irrelevant for windows
       this.mainWindow.setVisibleOnAllWorkspaces(true, {
         visibleOnFullScreen: true
       })

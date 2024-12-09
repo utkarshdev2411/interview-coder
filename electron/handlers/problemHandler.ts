@@ -293,6 +293,11 @@ export async function extractProblemInfo(
     // Return the parsed function call arguments
     return JSON.parse(functionCallArguments)
   } catch (error) {
+    if (error.response?.status === 401) {
+      throw new Error(
+        "Please close this window and re-enter a valid Open AI API key."
+      )
+    }
     if (error.response?.status === 429) {
       throw new Error(
         "API Key out of credits. Please refill your OpenAI API credits and try again."
@@ -392,6 +397,11 @@ Format Requirements:
     const content = response.data.choices[0].message.content
     return JSON.parse(content)
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      throw new Error(
+        "Please close this window and re-enter a valid Open AI API key."
+      )
+    }
     if (error.response?.status === 429) {
       throw new Error(
         "API Key out of credits. Please refill your OpenAI API credits and try again."
@@ -601,8 +611,10 @@ IMPORTANT FORMATTING NOTES:
         "API endpoint not found. Please check the model name and URL."
       )
     } else if (error.response?.status === 401) {
-      throw new Error("Authentication failed. Please check your API key.")
-    } else if (error.response?.status === 401) {
+      throw new Error(
+        "Please close this window and re-enter a valid Open AI API key."
+      )
+    } else if (error.response?.status === 429) {
       throw new Error(
         "API Key out of credits. Please refill your OpenAI API credits and try again."
       )
