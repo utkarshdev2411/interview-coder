@@ -192,7 +192,6 @@ async function initializeApp() {
   initializeIpcHandlers(appState)
 
   app.whenReady().then(() => {
-    console.log("App is ready")
     appState.createWindow()
     // Register global shortcuts using ShortcutsHelper
     appState.shortcutsHelper.registerGlobalShortcuts()
@@ -206,7 +205,6 @@ async function initializeApp() {
   })
 
   app.on("activate", () => {
-    console.log("App activated")
     if (appState.getMainWindow() === null) {
       appState.createWindow()
     }

@@ -97,20 +97,21 @@ export class WindowHelper {
       hasShadow: false,
       backgroundColor: "#00000000",
       focusable: true,
-      alwaysOnTop: true
+      alwaysOnTop: true,
+      skipTaskbar: true
     }
 
     this.mainWindow = new BrowserWindow(windowSettings)
-    // this.mainWindow.webContents.openDevTools()
+
     this.mainWindow.setContentProtection(true)
 
-    if (process.platform === "darwin") {
-      this.mainWindow.setHiddenInMissionControl(true) //this should hide the window from the dock on mac, irrelevant for windows
-      this.mainWindow.setVisibleOnAllWorkspaces(true, {
-        visibleOnFullScreen: true
-      })
-      this.mainWindow.setAlwaysOnTop(true, "floating")
-    }
+    this.mainWindow.setHiddenInMissionControl(true)
+    this.mainWindow.setVisibleOnAllWorkspaces(true, {
+      visibleOnFullScreen: true
+    })
+
+    // this.mainWindow.webContents.openDevTools()
+    this.mainWindow.setAlwaysOnTop(true, "floating")
 
     this.mainWindow.loadURL(startUrl).catch((err) => {
       console.error("Failed to load URL:", err)
