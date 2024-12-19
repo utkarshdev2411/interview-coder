@@ -3,17 +3,13 @@
 import fs from "node:fs"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { AppState } from "./main"
-import dotenv from "dotenv"
+
 import {
   debugSolutionResponses,
   extractProblemInfo,
   generateSolutionResponses
 } from "./handlers/problemHandler"
 import axios from "axios"
-
-dotenv.config()
-
-const isDev = process.env.NODE_ENV === "development"
 
 export class ProcessingHelper {
   private appState: AppState

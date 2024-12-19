@@ -18,6 +18,10 @@ export function initializeIpcHandlers(appState: AppState): void {
     return appState.deleteScreenshot(path)
   })
 
+  ipcMain.handle("get-api-key", async () => {
+    return store.get("openaiApiKey")
+  })
+
   ipcMain.handle("take-screenshot", async () => {
     try {
       const screenshotPath = await appState.takeScreenshot()

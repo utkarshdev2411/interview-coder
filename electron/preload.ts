@@ -7,6 +7,8 @@ interface ElectronAPI {
     width: number
     height: number
   }) => Promise<void>
+  getApiKey: () => Promise<string | null>
+
   getScreenshots: () => Promise<{
     success: boolean
     previews?: Array<{ path: string; preview: string }> | null
@@ -61,6 +63,8 @@ export const PROCESSING_EVENTS = {
 contextBridge.exposeInMainWorld("electronAPI", {
   updateContentDimensions: (dimensions: { width: number; height: number }) =>
     ipcRenderer.invoke("update-content-dimensions", dimensions),
+
+  getApiKey: () => ipcRenderer.invoke("get-api-key"),
   takeScreenshot: () => ipcRenderer.invoke("take-screenshot"),
   getScreenshots: () => ipcRenderer.invoke("get-screenshots"),
   deleteScreenshot: (path: string) =>

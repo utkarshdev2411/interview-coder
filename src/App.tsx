@@ -23,6 +23,7 @@ declare global {
         height: number
       }) => Promise<void>
       getScreenshots: () => Promise<Array<{ path: string; preview: string }>>
+      getApiKey: () => Promise<string | null>
 
       //GLOBAL EVENTS
       onUnauthorized: (callback: () => void) => () => void
@@ -191,6 +192,16 @@ const App: React.FC = () => {
       })
     ]
     return () => cleanupFunctions.forEach((cleanup) => cleanup())
+  }, [])
+
+  useEffect(() => {
+    const checkApiKey = async () => {
+      const apiKey = await window.electronAPI.getApiKey()
+      if (apiKey) {
+        setIsAuthenticated(true)
+      }
+    }
+    checkApiKey()
   }, [])
 
   if (!isAuthenticated) {

@@ -38,9 +38,8 @@ interface ProblemInfo {
   test_cases?: any // Adjust the type as needed
 }
 
-interface StoreSchema {
-  openaiApiKey: string
-  // add other store fields here
+export async function getApiKey(): Promise<string | null> {
+  return store.get("openaiApiKey")
 }
 
 // Define the extractProblemInfo function
