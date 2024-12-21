@@ -5,6 +5,7 @@ import { AppState } from "main"
 import path from "node:path"
 
 const isDev = process.env.NODE_ENV === "development"
+const isMac = process.platform === "darwin"
 
 const startUrl = isDev
   ? "http://localhost:5173"
@@ -105,12 +106,14 @@ export class WindowHelper {
 
     this.mainWindow.setContentProtection(true)
 
-    this.mainWindow.setHiddenInMissionControl(true)
-    this.mainWindow.setVisibleOnAllWorkspaces(true, {
-      visibleOnFullScreen: true
-    })
+    // Only call macOS specific methods if running on macOS
+    if (isMac) {
+      this.mainWindow.setHiddenInMissionControl(true)
+      this.mainWindow.setVisibleOnAllWorkspaces(true, {
+        visibleOnFullScreen: true
+      })
+    }
 
-    // this.mainWindow.webContents.openDevTools()
     this.mainWindow.setAlwaysOnTop(true, "floating")
 
     this.mainWindow.loadURL(startUrl).catch((err) => {
