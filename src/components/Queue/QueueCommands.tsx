@@ -48,7 +48,7 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
       onMouseLeave={handleMouseLeave}
     >
       {/* Gear icon */}
-      <div className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors flex items-center justify-center cursor-help z-10">
+      <div className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors flex items-center justify-center cursor-help">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -66,7 +66,12 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
 
       {/* Tooltip Content */}
       {isTooltipVisible && (
-        <div ref={tooltipRef} className="absolute top-full right-0 mt-2 w-80">
+        <div
+          ref={tooltipRef}
+          className="absolute top-full right-0 mt-2 w-80"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
           <div className="p-3 text-xs bg-black/80 backdrop-blur-md rounded-lg border border-white/10 text-white/90 shadow-lg">
             <div className="space-y-4">
               <h3 className="font-medium truncate">Keyboard Shortcuts</h3>
