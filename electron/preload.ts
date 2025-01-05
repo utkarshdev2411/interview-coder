@@ -8,6 +8,7 @@ interface ElectronAPI {
     height: number
   }) => Promise<void>
   getApiKey: () => Promise<string | null>
+  clearStore: () => Promise<{ success: boolean; error?: string }>
 
   getScreenshots: () => Promise<{
     success: boolean
@@ -65,6 +66,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("update-content-dimensions", dimensions),
 
   getApiKey: () => ipcRenderer.invoke("get-api-key"),
+  clearStore: () => ipcRenderer.invoke("clear-store"),
   takeScreenshot: () => ipcRenderer.invoke("take-screenshot"),
   getScreenshots: () => ipcRenderer.invoke("get-screenshots"),
   deleteScreenshot: (path: string) =>

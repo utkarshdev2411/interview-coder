@@ -24,6 +24,7 @@ declare global {
       }) => Promise<void>
       getScreenshots: () => Promise<Array<{ path: string; preview: string }>>
       getApiKey: () => Promise<string | null>
+      clearStore: () => Promise<{ success: boolean; error?: string }>
 
       //GLOBAL EVENTS
       onUnauthorized: (callback: () => void) => () => void

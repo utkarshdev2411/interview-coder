@@ -22,6 +22,16 @@ export function initializeIpcHandlers(appState: AppState): void {
     return store.get("openaiApiKey")
   })
 
+  ipcMain.handle("clear-store", async () => {
+    try {
+      store.set("openaiApiKey", null)
+      return { success: true }
+    } catch (error) {
+      console.error("Error clearing store:", error)
+      return { success: false, error: "Failed to clear store" }
+    }
+  })
+
   ipcMain.handle("take-screenshot", async () => {
     try {
       const screenshotPath = await appState.takeScreenshot()

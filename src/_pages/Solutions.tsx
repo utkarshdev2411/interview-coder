@@ -347,6 +347,19 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
     }
   }
 
+  const handleResetApiKey = async () => {
+    try {
+      const result = await window.electronAPI.clearStore()
+      if (result.success) {
+        window.location.reload()
+      } else {
+        showToast("Error", "Failed to reset API key", "error")
+      }
+    } catch (error) {
+      showToast("Error", "Failed to reset API key", "error")
+    }
+  }
+
   return (
     <>
       {!isResetting && queryClient.getQueryData(["new_solution"]) ? (

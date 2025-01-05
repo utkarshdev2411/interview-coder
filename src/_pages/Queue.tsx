@@ -52,6 +52,19 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
     }
   }
 
+  const handleResetApiKey = async () => {
+    try {
+      const result = await window.electronAPI.clearStore()
+      if (result.success) {
+        window.location.reload()
+      } else {
+        showToast("Error", "Failed to reset API key", "error")
+      }
+    } catch (error) {
+      showToast("Error", "Failed to reset API key", "error")
+    }
+  }
+
   useEffect(() => {
     // Height update logic
     const updateDimensions = () => {
@@ -111,7 +124,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
 
   return (
     <div ref={contentRef} className={`bg-transparent w-1/2`}>
-      <div className="px-4 py-3 ">
+      <div className="px-4 py-3">
         <div className="space-y-3 w-fit">
           <ScreenshotQueue
             isLoading={false}
