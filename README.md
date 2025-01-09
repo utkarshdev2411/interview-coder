@@ -11,7 +11,7 @@ The application is invisible to:
 - Zoom versions below 6.1.6 (inclusive)
 - All browser-based screen recording software
 - All versions of Discord
-- Mac OS _screenshot_ functionality (Command + Shift + 3/4/5)
+- Mac OS _screenshot_ functionality (Command + Shift + 3/4)
 
 Note: The application is **NOT** invisible to:
 
