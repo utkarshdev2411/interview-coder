@@ -182,7 +182,3 @@ xcrun stapler validate "/Users/roylee0912/Development/interview-coder/release/In
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-ISC License
